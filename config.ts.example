@@ -1,0 +1,17 @@
+interface IConfig {
+    port: number,
+    mongoose: {
+        url: string,
+        options: any
+    }
+}
+
+const config: IConfig = {
+    port: 3000,
+    mongoose: {
+        url: "",
+        options: {}
+    }
+}
+
+export default config
