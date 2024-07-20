@@ -1,9 +1,10 @@
-import { Document } from 'mongoose';
 import IUser from './user';
 
-export default interface IPost extends Document {
+interface IPost {
     title: string;
-    author: IUser;
+    author: IUser | string; // userId
     content: string;
     picture?: string;
 }
+
+export default IPost

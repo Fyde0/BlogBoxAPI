@@ -1,13 +1,15 @@
 interface IConfig {
     port: number,
+    sessionSecret: string,
     mongoose: {
         url: string,
-        options: any
+        options?: any
     }
 }
 
 const config: IConfig = {
     port: 3000,
+    sessionSecret: "",
     mongoose: {
         url: "",
         options: {}
@@ -15,3 +17,5 @@ const config: IConfig = {
 }
 
 export default config
+
+// TODO Use dotenv instead
