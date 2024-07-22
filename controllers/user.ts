@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express"
 import bcrypt from "bcrypt"
+// Interfaces and models
 import IUser from "../interfaces/user"
 import User from "../models/user"
 
@@ -34,22 +35,23 @@ async function register(req: Request, res: Response, next: NextFunction) {
     if (validationError !== "") {
         // 422 Unprocessable Content
         console.log("Invalid credentials.")
-        return res.status(422).json({ "error": validationError })
+        return res.status(422).send(validationError)
     }
 
     // Check if user already exists
     if (await User.exists({ username }) !== null) {
         // 409 Conflict
         console.log("Username already taken.")
-        return res.status(409).json({ "error": "This username is already taken." })
+        return res.status(409).send("This username is already taken.")
     }
 
     // Hash password
     const saltRounds = 10
     const hash = await bcrypt.hash(password, saltRounds)
     if (!hash) {
+        // 500 Internal Server Error
         console.error("BCrypt error.")
-        return res.status(500).json({ "error": "Server error" })
+        return res.status(500).send("Server error.")
     }
 
     // Create new User
@@ -62,12 +64,14 @@ async function register(req: Request, res: Response, next: NextFunction) {
 
     newUser.save()
         .then(user => {
+            // 201 Created
             console.log("User created.")
-            return res.status(201).json({ "message": "User created" })
+            return res.status(201).send("User created.")
         })
         .catch(error => {
+            // 500 Internal Server Error
             console.error(error)
-            return res.status(500).json({ "error": "Server error" })
+            return res.status(500).send("Server error.")
         })
 }
 
@@ -82,21 +86,24 @@ async function login(req: Request, res: Response, next: NextFunction) {
     // Get and validate user
     const user = await User.findOne({ username })
     if (!user) {
+        // 401 Unauthorized
         console.log("User not found.")
-        return res.status(404).json({ "error": "User not found" })
+        return res.status(401).send("Wrong username or password.")
     }
 
     // Validate password
     const validPassword = bcrypt.compare(password, user.password)
     if (!validPassword) {
+        // 401 Unauthorized
         console.log("Wrong credentials.")
-        return res.status(401).json({ "error": "Wrong username or password" })
+        return res.status(401).send("Wrong username or password.")
     }
 
     req.session.regenerate((error) => {
         if (error) {
+            // 500 Internal Server Error
             console.error(error)
-            return res.status(500).json({ "error": "Server error" })
+            return res.status(500).send("Server error.")
         }
 
         // Store user id in session
@@ -104,11 +111,13 @@ async function login(req: Request, res: Response, next: NextFunction) {
         // Save session
         req.session.save((error) => {
             if (error) {
+                // 500 Internal Server Error
                 console.error(error)
-                return res.status(500).json({ "error": "Server error" })
+                return res.status(500).send("Server error.")
             } else {
+                // 200 OK
                 console.log("User logged in.")
-                return res.status(200).json({ "message": "success" })
+                return res.status(200).send("Logged in.")
             }
         })
     })
@@ -123,25 +132,28 @@ function logout(req: Request, res: Response, next: NextFunction) {
     if (!req.session.userId) {
         // 204 No Content
         console.log("User not logged in")
-        return res.status(204).json({ "message": "Not logged in" })
+        return res.status(204).send("Not logged in.")
     }
 
     req.session.userId = null
-    
+
     req.session.save(function (error) {
         if (error) {
+            // 500 Internal Server Error
             console.error(error)
-            return res.status(500).json({ "error": "Server error" })
+            return res.status(500).send("Server error.")
         }
 
         // Regenerate, good practice
         req.session.regenerate(function (err) {
             if (error) {
+                // 500 Internal Server Error
                 console.error(error)
-                return res.status(500).json({ "error": "Server error" })
+                return res.status(500).send("Server error.")
             } else {
+                // 200 OK
                 console.log("User logged out.")
-                return res.status(200).json({ "message": "success" })
+                return res.status(200).send("Logged out.")
             }
         })
     })

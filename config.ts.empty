@@ -1,6 +1,7 @@
 interface IConfig {
     port: number,
     sessionSecret: string,
+    client: string | boolean, // for cors, url of client or true to reflect
     mongoose: {
         url: string,
         options?: any
@@ -10,6 +11,7 @@ interface IConfig {
 const config: IConfig = {
     port: 3000,
     sessionSecret: "",
+    client: true,
     mongoose: {
         url: "",
         options: {}

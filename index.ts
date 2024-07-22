@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from "express"
+import cors from "cors"
 import mongoose from "mongoose"
 import session from "express-session"
 // Routes and config
@@ -9,17 +10,24 @@ import config from "./config"
 const app = express()
 const PORT = config.port
 
+// Fake delay
+// app.use((req: Request, res: Response, next: NextFunction) => {
+//     setTimeout(next, 1000)
+// })
+
 // TODO Better logging?
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`)
-
     next()
 })
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// TODO API rules
+// Cors and options
+app.use(cors({
+    credentials: true,
+    origin: config.client
+}))
+app.use(express.urlencoded({ extended: true }))
+app.use(express.json())
 
 // Interface for session content
 declare module "express-session" {
@@ -30,12 +38,13 @@ declare module "express-session" {
 // Session setup
 // TODO Change store
 app.use(session({
-    name: "blogboxapi",
+    name: "id",
     secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
     unset: "destroy",
     cookie: {
+        sameSite: 'strict',
         secure: false, // set to true for https
         maxAge: 24 * 60 * 60 * 1000 // ms
     }
@@ -46,6 +55,7 @@ app.use("/posts", postRoutes)
 app.use("/users", userRoutes)
 // Invalid route / Not found
 app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log("Not found")
     res.status(404).json({ "error": "Not found" })
 })
 // If everything else fails
@@ -66,5 +76,6 @@ mongoose.connect(config.mongoose.url, config.mongoose.options)
         })
     })
     .catch(error => {
+        console.error(error)
         console.error("Error connecting to MongoDB.")
     })
