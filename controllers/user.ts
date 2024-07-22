@@ -3,6 +3,9 @@ import bcrypt from "bcrypt"
 import IUser from "../interfaces/user"
 import User from "../models/user"
 
+// 
+// Functions
+// 
 function validateRegistrationCredentials(username: string, password: string): string {
     if (!username || username === '') { return "Username required." }
     if (!password || password === '') { return "Password required." }
@@ -18,6 +21,9 @@ function validateRegistrationCredentials(username: string, password: string): st
     return ""
 }
 
+// 
+// Register
+// 
 async function register(req: Request, res: Response, next: NextFunction) {
     console.log("Creating user...")
 
@@ -65,6 +71,9 @@ async function register(req: Request, res: Response, next: NextFunction) {
         })
 }
 
+// 
+// Login
+// 
 async function login(req: Request, res: Response, next: NextFunction) {
     console.log("Logging in user...")
 
@@ -105,6 +114,9 @@ async function login(req: Request, res: Response, next: NextFunction) {
     })
 }
 
+// 
+// Logout
+// 
 function logout(req: Request, res: Response, next: NextFunction) {
     console.log("Logging out user...")
 
@@ -115,6 +127,7 @@ function logout(req: Request, res: Response, next: NextFunction) {
     }
 
     req.session.userId = null
+    
     req.session.save(function (error) {
         if (error) {
             console.error(error)

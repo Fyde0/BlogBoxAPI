@@ -9,8 +9,12 @@ import config from "./config"
 const app = express()
 const PORT = config.port
 
-// TODO Log requests
-// TODO Implement better logging
+// TODO Better logging?
+app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log(`METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`)
+
+    next()
+})
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -20,7 +24,7 @@ app.use(express.json());
 // Interface for session content
 declare module "express-session" {
     interface Session {
-        userId: string | null;
+        userId: string | null
     }
 }
 // Session setup
@@ -30,6 +34,7 @@ app.use(session({
     secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
+    unset: "destroy",
     cookie: {
         secure: false, // set to true for https
         maxAge: 24 * 60 * 60 * 1000 // ms
