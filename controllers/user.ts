@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import bcrypt from "bcrypt"
 // Interfaces and models
-import IUser from "../interfaces/user"
+import IUser, { IUserInfo } from "../interfaces/user"
 import User from "../models/user"
 
 // 
@@ -28,10 +28,10 @@ function validateRegistrationCredentials(username: string, password: string): st
 async function register(req: Request, res: Response, next: NextFunction) {
     console.log("Creating user...")
 
-    let { username, password } = req.body
+    let user: IUser = { ...req.body, admin: false }
 
     // Validate username and password
-    const validationError = validateRegistrationCredentials(username, password)
+    const validationError = validateRegistrationCredentials(user.username, user.password)
     if (validationError !== "") {
         // 422 Unprocessable Content
         console.log("Invalid credentials.")
@@ -39,7 +39,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
     }
 
     // Check if user already exists
-    if (await User.exists({ username }) !== null) {
+    if (await User.exists({ username: user.username }) !== null) {
         // 409 Conflict
         console.log("Username already taken.")
         return res.status(409).send("This username is already taken.")
@@ -47,7 +47,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
 
     // Hash password
     const saltRounds = 10
-    const hash = await bcrypt.hash(password, saltRounds)
+    const hash = await bcrypt.hash(user.password, saltRounds)
     if (!hash) {
         // 500 Internal Server Error
         console.error("BCrypt error.")
@@ -57,13 +57,13 @@ async function register(req: Request, res: Response, next: NextFunction) {
     // Create new User
     // Need the interface, Typescript doesn't validate Models
     const newUser = new User<IUser>({
-        username: username,
+        username: user.username,
         password: hash,
-        admin: false
+        admin: user.admin
     })
 
     newUser.save()
-        .then(user => {
+        .then(() => {
             // 201 Created
             console.log("User created.")
             return res.status(201).send("User created.")
@@ -84,7 +84,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     let { username, password } = req.body
 
     // Get and validate user
-    const user = await User.findOne({ username })
+    const user = await User.findOne<IUser>({ username })
     if (!user) {
         // 401 Unauthorized
         console.log("User not found.")
@@ -100,7 +100,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     }
 
     req.session.regenerate((error) => {
-        if (error) {
+        if (error || !user._id) {
             // 500 Internal Server Error
             console.error(error)
             return res.status(500).send("Server error.")
@@ -115,9 +115,10 @@ async function login(req: Request, res: Response, next: NextFunction) {
                 console.error(error)
                 return res.status(500).send("Server error.")
             } else {
+                const userInfo: IUserInfo = { username: user.username, admin: user.admin }
                 // 200 OK
                 console.log("User logged in.")
-                return res.status(200).send("Logged in.")
+                return res.status(200).send(userInfo)
             }
         })
     })
@@ -135,8 +136,8 @@ function logout(req: Request, res: Response, next: NextFunction) {
         return res.status(204).send("Not logged in.")
     }
 
+    // Destroy session and save
     req.session.userId = null
-
     req.session.save(function (error) {
         if (error) {
             // 500 Internal Server Error
@@ -145,7 +146,7 @@ function logout(req: Request, res: Response, next: NextFunction) {
         }
 
         // Regenerate, good practice
-        req.session.regenerate(function (err) {
+        req.session.regenerate(function (error) {
             if (error) {
                 // 500 Internal Server Error
                 console.error(error)
