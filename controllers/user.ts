@@ -92,7 +92,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     }
 
     // Validate password
-    const validPassword = bcrypt.compare(password, user.password)
+    const validPassword = await bcrypt.compare(password, user.password)
     if (!validPassword) {
         // 401 Unauthorized
         console.log("Wrong credentials.")
@@ -160,8 +160,20 @@ function logout(req: Request, res: Response, next: NextFunction) {
     })
 }
 
+// 
+// Ping
+// 
+function ping(req: Request, res: Response, next: NextFunction) {
+    console.log("Pinging user...")
+
+    // 200 OK
+    console.log("Pinged.")
+    return res.status(200).send("Still logged in.")
+}
+
 export default {
     register,
     login,
-    logout
+    logout,
+    ping
 }

@@ -12,7 +12,7 @@ const PORT = config.port
 
 // Fake delay
 // app.use((req: Request, res: Response, next: NextFunction) => {
-//     setTimeout(next, 1000)
+//     setTimeout(next, 2000)
 // })
 
 // TODO Better logging?
@@ -47,6 +47,7 @@ app.use(session({
         sameSite: 'strict',
         secure: false, // set to true for https
         maxAge: 24 * 60 * 60 * 1000 // ms
+        // maxAge: 1000 * 10
     }
 }))
 
