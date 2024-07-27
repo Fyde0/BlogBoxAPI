@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
+
 interface IUser {
-    _id?: string
+    _id?: mongoose.Types.ObjectId
     username: string
     password: string
     admin: boolean

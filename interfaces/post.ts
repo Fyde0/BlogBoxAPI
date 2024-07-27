@@ -1,10 +1,15 @@
+import mongoose from "mongoose";
 import IUser from './user';
 
 interface IPost {
-    title: string;
-    author: IUser | string; // userId
-    content: string;
-    picture?: string;
+    _id?: mongoose.Types.ObjectId
+    title: string
+    postId?: string
+    author: IUser
+    content: string
+    picture?: string
+    createdAt?: Date
+    updatedAt?: Date
 }
 
 export default IPost

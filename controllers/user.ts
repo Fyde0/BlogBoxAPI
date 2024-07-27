@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express"
 import bcrypt from "bcrypt"
-// Interfaces and models
+//
 import IUser, { IUserInfo } from "../interfaces/user"
 import User from "../models/user"
 
