@@ -1,10 +1,14 @@
 import { Request, Response, NextFunction } from "express"
 // 
+import { serverError } from "../helpers/serverError"
 import IPost from "../interfaces/post"
 import IUser from "../interfaces/user"
 import Post from "../models/post"
 import User from "../models/user"
 
+// 
+// Create
+// 
 async function create(req: Request, res: Response, next: NextFunction) {
     console.log("Creating post...")
 
@@ -19,7 +23,7 @@ async function create(req: Request, res: Response, next: NextFunction) {
 
     // TODO Validate title and content size
 
-    // Get user
+    // Get user, it works even if it's not a full IUser? (can't user IUserInfo)
     const user = await User.findById<IUser>(userId)
     if (!user) {
         // 401 Unauthorized
@@ -37,34 +41,51 @@ async function create(req: Request, res: Response, next: NextFunction) {
 
     newPost.save()
         .then(post => {
+            // 200 OK
             console.log("Post created.")
-
             return res.status(201).send(post)
         })
-        .catch(error => {
-            // 500 Internal Server Error
-            console.error(error)
-            return res.status(500).send("Server error.")
-        })
+        .catch((error) => { return serverError(res, error) })
 }
 
-// get /byId/:id
-// Post.find({ _id })
+// 
+// Get by Id
+// 
+function getById(req: Request, res: Response, next: NextFunction) {
+    console.log("Getting post by id...")
 
+    let { year, month, day, titleId } = req.params
+    const postId = [year, month, day, titleId].join("/")
+
+    Post.findOne<IPost>({ postId: postId })
+        .populate("author")
+        .then(post => {
+            if (!post) {
+                // 404 Not Found
+                console.log("Not found: " + postId)
+                return res.status(404).send("Post not found.")
+            }
+            // 200 OK
+            console.log("Sending " + post.postId)
+            return res.status(200).send(post)
+        })
+        .catch((error) => { return serverError(res, error) })
+}
+
+// 
+// 
 // TODO limit and skip instead of all
 function getAll(req: Request, res: Response, next: NextFunction) {
-    console.log('Getting all posts...')
+    console.log("Getting all posts...")
 
-    Post.find()
+    // TODO test if array works
+    Post.find<IPost[]>()
+        .populate("author")
         .then(posts => {
             console.log("Returning all posts.")
             return res.status(200).send(posts)
         })
-        .catch((error) => {
-            // 500 Internal Server Error
-            console.error(error)
-            return res.status(500).send("Server error.")
-        })
+        .catch((error) => { return serverError(res, error) })
 }
 
 // put /update/:id
@@ -75,5 +96,6 @@ function getAll(req: Request, res: Response, next: NextFunction) {
 
 export default {
     create,
+    getById,
     getAll
 }

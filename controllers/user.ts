@@ -3,6 +3,7 @@ import bcrypt from "bcrypt"
 //
 import IUser, { IUserInfo } from "../interfaces/user"
 import User from "../models/user"
+import { serverError } from "../helpers/serverError"
 
 // 
 // Functions
@@ -49,9 +50,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
     const saltRounds = 10
     const hash = await bcrypt.hash(user.password, saltRounds)
     if (!hash) {
-        // 500 Internal Server Error
-        console.error("BCrypt error.")
-        return res.status(500).send("Server error.")
+        return serverError(res, "BCrypt error.")
     }
 
     // Create new User
@@ -68,11 +67,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
             console.log("User created.")
             return res.status(201).send("User created.")
         })
-        .catch(error => {
-            // 500 Internal Server Error
-            console.error(error)
-            return res.status(500).send("Server error.")
-        })
+        .catch((error) => { return serverError(res, error) })
 }
 
 // 
@@ -83,8 +78,8 @@ async function login(req: Request, res: Response, next: NextFunction) {
 
     let { username, password } = req.body
 
-    // Get and validate user
-    const user = await User.findOne<IUser>({ username })
+    // Get and validate user, include password
+    const user = await User.findOne<IUser>({ username }).select("+password")
     if (!user) {
         // 401 Unauthorized
         console.log("User not found.")
@@ -101,9 +96,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
 
     req.session.regenerate((error) => {
         if (error || !user._id) {
-            // 500 Internal Server Error
-            console.error(error)
-            return res.status(500).send("Server error.")
+            return serverError(res, error)
         }
 
         // Store user id in session
@@ -111,9 +104,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
         // Save session
         req.session.save((error) => {
             if (error) {
-                // 500 Internal Server Error
-                console.error(error)
-                return res.status(500).send("Server error.")
+                return serverError(res, error)
             } else {
                 const userInfo: IUserInfo = { username: user.username, admin: user.admin }
                 // 200 OK

@@ -5,7 +5,7 @@ import checkIfAuthenticated from '../middleware/checkIfAuthenticated'
 const router = express.Router()
 
 router.get('/', controller.getAll)
-// get /byId/:id
+router.get('/byId/:year/:month/:day/:titleId', controller.getById)
 router.post('/create', checkIfAuthenticated, controller.create)
 // put /update/:id
 // delete /delete/:id
