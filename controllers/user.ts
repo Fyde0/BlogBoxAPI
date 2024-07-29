@@ -106,7 +106,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
             if (error) {
                 return serverError(res, error)
             } else {
-                const userInfo: IUserInfo = { username: user.username, admin: user.admin }
+                const userInfo: IUserInfo = user
                 // 200 OK
                 console.log("User logged in.")
                 return res.status(200).send(userInfo)
@@ -128,6 +128,7 @@ function logout(req: Request, res: Response, next: NextFunction) {
     }
 
     // Destroy session and save
+    // TODO .destroy() instead?
     req.session.userId = null
     req.session.save(function (error) {
         if (error) {

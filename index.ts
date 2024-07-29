@@ -12,12 +12,15 @@ const PORT = config.port
 
 // Fake delay
 // app.use((req: Request, res: Response, next: NextFunction) => {
-//     setTimeout(next, 2000)
+//     setTimeout(next, 1000)
 // })
 
 // TODO Better logging?
+function now() {
+    return new Date().toISOString();
+}
 app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log(`METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`)
+    console.log(`TIME: [${now()}] - METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`)
     next()
 })
 
@@ -30,8 +33,9 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 
 // Interface for session content
+// see https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/express-session/index.d.ts
 declare module "express-session" {
-    interface Session {
+    interface SessionData {
         userId: string | null
     }
 }
@@ -56,13 +60,13 @@ app.use("/posts", postRoutes)
 app.use("/users", userRoutes)
 // Invalid route / Not found
 app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log("Not found")
-    res.status(404).json({ "error": "Not found" })
+    console.log("Invalid route")
+    res.status(404).send("Route not found")
 })
 // If everything else fails
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error(err.stack)
-    res.status(500).json({ "error": "Server error!" })
+    res.status(500).send("Server error.")
 })
 
 // Connect to DB and listen for requests

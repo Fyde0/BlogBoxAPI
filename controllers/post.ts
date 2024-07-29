@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express"
+import { z } from "zod"
 // 
 import { serverError } from "../helpers/serverError"
 import IPost from "../interfaces/post"
@@ -12,8 +13,8 @@ import User from "../models/user"
 async function create(req: Request, res: Response, next: NextFunction) {
     console.log("Creating post...")
 
-    let { title, content, picture } = req.body
-    let userId = req.session.userId
+    const { title, content, picture } = req.body
+    const userId = req.session.userId
 
     if (!title || !content) {
         // 422 Unprocessable Content
@@ -49,9 +50,9 @@ async function create(req: Request, res: Response, next: NextFunction) {
 }
 
 // 
-// Get by Id
+// Get by Post Id
 // 
-function getById(req: Request, res: Response, next: NextFunction) {
+function getByPostId(req: Request, res: Response, next: NextFunction) {
     console.log("Getting post by id...")
 
     let { year, month, day, titleId } = req.params
@@ -73,16 +74,25 @@ function getById(req: Request, res: Response, next: NextFunction) {
 }
 
 // 
-// 
-// TODO limit and skip instead of all
-function getAll(req: Request, res: Response, next: NextFunction) {
-    console.log("Getting all posts...")
+// Get posts (with amount and skip)
+//
+function getPosts(req: Request, res: Response, next: NextFunction) {
+    console.log("Getting posts...")
 
-    // TODO test if array works
-    Post.find<IPost[]>()
+    const { amount, skip } = req.query
+
+    const amountInt = z.coerce.number().default(10).catch(10).parse(amount)
+    const skipInt = z.coerce.number().default(0).catch(0).parse(skip)
+
+    // TODO limit max amount?
+
+    Post.find<IPost>()
+        .sort({ updatedAt: "descending" })
+        .skip(skipInt)
+        .limit(amountInt)
         .populate("author")
         .then(posts => {
-            console.log("Returning all posts.")
+            console.log("Returning posts.")
             return res.status(200).send(posts)
         })
         .catch((error) => { return serverError(res, error) })
@@ -96,6 +106,6 @@ function getAll(req: Request, res: Response, next: NextFunction) {
 
 export default {
     create,
-    getById,
-    getAll
+    getByPostId,
+    getPosts
 }
