@@ -68,7 +68,7 @@ function getByPostId(req: Request, res: Response, next: NextFunction) {
                 return res.status(404).json({"error": "Post not found."})
             }
             // 200 OK
-            console.log("Sending " + post.postId)
+            console.log("Responding with " + post.postId)
             return res.status(200).json(post)
         })
         .catch((error) => { return serverError(res, error) })

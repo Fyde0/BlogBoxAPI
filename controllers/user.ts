@@ -7,24 +7,6 @@ import IUser, { IUserInfo } from "../interfaces/user"
 import User from "../models/user"
 
 // 
-// Functions
-// 
-function validateRegistrationCredentials(username: string, password: string): string {
-    if (!username || username === '') { return "Username required." }
-    if (!password || password === '') { return "Password required." }
-    if (username.length < 4 || username.length > 32) {
-        return "The username needs to be between 4 and 32 characters."
-    }
-    if (password.length < 4 || password.length > 50) {
-        return "The password needs to be between 4 and 50 characters."
-    }
-    if (!/^([a-z0-9-_]+)$/i.test(username)) {
-        return "The username contains invalid characters."
-    }
-    return ""
-}
-
-// 
 // Register
 // 
 async function register(req: Request, res: Response, next: NextFunction) {
@@ -33,18 +15,33 @@ async function register(req: Request, res: Response, next: NextFunction) {
     let user: IUser = { ...req.body, admin: false }
 
     // Validate username and password
-    const validationError = validateRegistrationCredentials(user.username, user.password)
-    if (validationError !== "") {
+
+    const validationResult = z.object({
+        username: z
+            .string()
+            .min(1, { message: "Username required." })
+            .min(4, { message: "The username must be between 4 and 32 characters." })
+            .max(32, { message: "The username must be between 4 and 32 characters." })
+            .regex(/^([a-z0-9-_]+)$/, { message: "The username contains invalid characters." }),
+        password: z
+            .string()
+            .min(1, { message: "Password required." })
+            .min(4, { message: "The password must be between 4 and 50 characters." })
+            .max(50, { message: "The password must be between 4 and 50 characters." }),
+    })
+        .safeParse({ username: user.username, password: user.password })
+
+    if (!validationResult.success) {
         // 422 Unprocessable Content
         console.log("Invalid credentials.")
-        return res.status(422).send(validationError)
+        return res.status(422).json({ "error": validationResult.error.issues[0].message })
     }
 
     // Check if user already exists
     if (await User.exists({ username: user.username }) !== null) {
         // 409 Conflict
         console.log("Username already taken.")
-        return res.status(409).send("This username is already taken.")
+        return res.status(409).json({ "error": "This username is already taken." })
     }
 
     // Hash password
@@ -66,7 +63,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
         .then(() => {
             // 201 Created
             console.log("User created.")
-            return res.status(201).send("User created.")
+            return res.status(201).json({ "message": "User created." })
         })
         .catch((error) => { return serverError(res, error) })
 }
@@ -140,7 +137,7 @@ function logout(req: Request, res: Response, next: NextFunction) {
     if (!req.session.userId) {
         // 204 No Content
         console.log("User not logged in")
-        return res.status(204).send("Not logged in.")
+        return res.status(204).json({ "error": "Not logged in." })
     }
 
     // Destroy session and save
@@ -148,21 +145,17 @@ function logout(req: Request, res: Response, next: NextFunction) {
     req.session.userId = null
     req.session.save(function (error) {
         if (error) {
-            // 500 Internal Server Error
-            console.error(error)
-            return res.status(500).send("Server error.")
+            return serverError(res, error)
         }
 
         // Regenerate, good practice
         req.session.regenerate(function (error) {
             if (error) {
-                // 500 Internal Server Error
-                console.error(error)
-                return res.status(500).send("Server error.")
+                return serverError(res, error)
             } else {
                 // 200 OK
                 console.log("User logged out.")
-                return res.status(200).send("Logged out.")
+                return res.status(200).json({ "message": "Logged out." })
             }
         })
     })
@@ -176,7 +169,7 @@ function ping(req: Request, res: Response, next: NextFunction) {
 
     // 200 OK
     console.log("Pinged.")
-    return res.status(200).send("Still logged in.")
+    return res.status(200).json({ "message": "Still logged in." })
 }
 
 export default {

@@ -5,6 +5,7 @@ import session from "express-session"
 // Routes and config
 import postRoutes from "./routes/post"
 import userRoutes from "./routes/user"
+import { serverError } from "./helpers/serverError"
 import config from "./config"
 
 const app = express()
@@ -61,12 +62,11 @@ app.use("/users", userRoutes)
 // Invalid route / Not found
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log("Invalid route")
-    res.status(404).send("Route not found")
+    res.status(404).json({ "error": "Route not found." })
 })
 // If everything else fails
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error(err.stack)
-    res.status(500).send("Server error.")
+    serverError(res, err.stack)
 })
 
 // Connect to DB and listen for requests
