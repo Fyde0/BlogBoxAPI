@@ -7,7 +7,7 @@ function checkIfAuthenticated(req: Request, res: Response, next: NextFunction) {
     } else {
         // 401 Unauthorized
         console.log("Not authenticated.")
-        return res.status(401).json({ "error": "Unauthorized" })
+        return res.status(401).json({"error": "You're not logged in."})
     }
 }
 

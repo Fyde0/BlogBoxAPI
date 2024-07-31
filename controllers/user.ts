@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express"
 import bcrypt from "bcrypt"
+import { z } from "zod"
 //
+import { serverError } from "../helpers/serverError"
 import IUser, { IUserInfo } from "../interfaces/user"
 import User from "../models/user"
-import { serverError } from "../helpers/serverError"
 
 // 
 // Functions
@@ -78,12 +79,23 @@ async function login(req: Request, res: Response, next: NextFunction) {
 
     let { username, password } = req.body
 
+    const validationResult = z.object({
+        username: z.string().min(1, { message: "Username required." }),
+        password: z.string().min(1, { message: "Password required." })
+    }).safeParse({ username: username, password: password })
+
+    if (!validationResult.success) {
+        // 422 Unprocessable Content
+        console.log("Fields missing.")
+        return res.status(422).json({ "error": validationResult.error.issues[0].message })
+    }
+
     // Get and validate user, include password
     const user = await User.findOne<IUser>({ username }).select("+password")
     if (!user) {
         // 401 Unauthorized
         console.log("User not found.")
-        return res.status(401).send("Wrong username or password.")
+        return res.status(401).json({ "error": "Wrong username or password." })
     }
 
     // Validate password
@@ -91,7 +103,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     if (!validPassword) {
         // 401 Unauthorized
         console.log("Wrong credentials.")
-        return res.status(401).send("Wrong username or password.")
+        return res.status(401).json({ "error": "Wrong username or password." })
     }
 
     req.session.regenerate((error) => {
@@ -106,10 +118,14 @@ async function login(req: Request, res: Response, next: NextFunction) {
             if (error) {
                 return serverError(res, error)
             } else {
-                const userInfo: IUserInfo = user
+                const userInfo: IUserInfo = {
+                    _id: user._id,
+                    username: user.username,
+                    admin: user.admin
+                }
                 // 200 OK
                 console.log("User logged in.")
-                return res.status(200).send(userInfo)
+                return res.status(200).json(userInfo)
             }
         })
     })
