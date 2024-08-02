@@ -139,24 +139,6 @@ function getByDateRange(req: Request, res: Response, next: NextFunction) {
 function getCountByMonth(req: Request, res: Response, next: NextFunction) {
     console.log("Getting amount of posts by publish month...")
 
-    const { timezone } = req.params
-
-    let validatedTimezone
-    if (timezone) {
-        // Check if timezone is valid
-        // from https://stackoverflow.com/questions/44115681/javascript-check-if-timezone-name-valid-or-not
-        try {
-            Intl.DateTimeFormat(undefined, { timeZone: timezone })
-            validatedTimezone = timezone
-        } catch (e) {
-            // 422 Unprocessable Content
-            console.log("Invalid timezone.")
-            return res.status(422).json({ "error": "Invalid timezone." })
-        }
-    } else {
-        validatedTimezone = "UTC"
-    }
-
     // Aggregate and order posts by year and month
     Post.aggregate<IPostsCountByMonth>([
         {
