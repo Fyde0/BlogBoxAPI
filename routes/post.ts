@@ -4,8 +4,10 @@ import checkIfAuthenticated from '../middleware/checkIfAuthenticated'
 
 const router = express.Router()
 
-router.get("/", controller.getPosts) // ?amount=&skip=
+router.get("/", controller.getAll) // ?amount=&skip=
+router.get("/byDateRange/:startDateEpochMs/:endDateEpochMs", controller.getByDateRange)
 router.get("/byPostId/:year/:month/:day/:titleId", controller.getByPostId)
+router.get("/countByMonth/:timezone?", controller.getCountByMonth)
 router.post("/create", checkIfAuthenticated, controller.create)
 router.patch("/update/:_id", checkIfAuthenticated, controller.update)
 router.delete("/delete/:_id", checkIfAuthenticated, controller.deletePost)

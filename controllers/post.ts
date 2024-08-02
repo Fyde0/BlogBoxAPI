@@ -3,9 +3,11 @@ import { z } from "zod"
 // 
 import { serverError } from "../helpers/serverError"
 import IPost from "../interfaces/post"
+import IPostsCountByMonth from "../interfaces/postsCountByMonth"
 import IUser from "../interfaces/user"
 import Post from "../models/post"
 import User from "../models/user"
+import post from "../models/post"
 
 // 
 // Create
@@ -19,7 +21,7 @@ async function create(req: Request, res: Response, next: NextFunction) {
     if (!title || !content) {
         // 422 Unprocessable Content
         console.log("Missing fields.")
-        return res.status(422).json({"error": "One or more fields are missing."})
+        return res.status(422).json({ "error": "One or more fields are missing." })
     }
 
     // TODO Validate title and content size
@@ -29,7 +31,7 @@ async function create(req: Request, res: Response, next: NextFunction) {
     if (!user) {
         // 401 Unauthorized
         console.log("User doesn't exist, how did that happen?")
-        return res.status(401).json({"error": "???"})
+        return res.status(401).json({ "error": "???" })
     }
 
     const newPost = new Post<IPost>({
@@ -65,7 +67,7 @@ function getByPostId(req: Request, res: Response, next: NextFunction) {
             if (!post) {
                 // 404 Not Found
                 console.log("Not found: " + postId)
-                return res.status(404).json({"error": "Post not found."})
+                return res.status(404).json({ "error": "Post not found." })
             }
             // 200 OK
             console.log("Responding with " + post.postId)
@@ -77,7 +79,7 @@ function getByPostId(req: Request, res: Response, next: NextFunction) {
 // 
 // Get posts (with amount and skip)
 //
-function getPosts(req: Request, res: Response, next: NextFunction) {
+function getAll(req: Request, res: Response, next: NextFunction) {
     console.log("Getting posts...")
 
     const { amount, skip } = req.query
@@ -101,6 +103,82 @@ function getPosts(req: Request, res: Response, next: NextFunction) {
 }
 
 // 
+// Get posts by date range
+// 
+function getByDateRange(req: Request, res: Response, next: NextFunction) {
+    console.log("Getting posts by date range...")
+
+    const { startDateEpochMs, endDateEpochMs } = req.params
+
+    const startDate = new Date(Number(startDateEpochMs))
+    const endDate = new Date(Number(endDateEpochMs))
+
+    const dateValidation = z
+        .object({ startDate: z.date(), endDate: z.date() })
+        .safeParse({ startDate, endDate })
+
+    if (!dateValidation.success) {
+        // 422 Unprocessable Content
+        console.log("Invalid date.")
+        return res.status(422).json({ "error": "Invalid date." })
+    }
+
+    Post.find<IPost>({ createdAt: { $gte: startDate, $lte: endDate } })
+        .sort({ updatedAt: "descending" })
+        .populate("author")
+        .then(posts => {
+            console.log("Returning posts by date.")
+            return res.status(200).json(posts)
+        })
+        .catch((error) => { return serverError(res, error) })
+}
+
+// 
+// Get post count by month
+// 
+function getCountByMonth(req: Request, res: Response, next: NextFunction) {
+    console.log("Getting amount of posts by publish month...")
+
+    const { timezone } = req.params
+
+    let validatedTimezone
+    if (timezone) {
+        // Check if timezone is valid
+        // from https://stackoverflow.com/questions/44115681/javascript-check-if-timezone-name-valid-or-not
+        try {
+            Intl.DateTimeFormat(undefined, { timeZone: timezone })
+            validatedTimezone = timezone
+        } catch (e) {
+            // 422 Unprocessable Content
+            console.log("Invalid timezone.")
+            return res.status(422).json({ "error": "Invalid timezone." })
+        }
+    } else {
+        validatedTimezone = "UTC"
+    }
+
+    // Aggregate and order posts by year and month
+    Post.aggregate<IPostsCountByMonth>([
+        {
+            $group: {
+                _id: {
+                    year: { $year: "$createdAt" },
+                    month: { $month: "$createdAt" }
+                },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $sort: { "_id.year": 1, "_id.month": 1 }
+        }])
+        .then(result => {
+            console.log("Returning amount of posts by publish month.")
+            return res.status(200).json(result)
+        })
+        .catch((error) => { return serverError(res, error) })
+}
+
+// 
 // Update
 // 
 async function update(req: Request, res: Response, next: NextFunction) {
@@ -113,7 +191,7 @@ async function update(req: Request, res: Response, next: NextFunction) {
     if (!title || !content) {
         // 422 Unprocessable Content
         console.log("Missing fields.")
-        return res.status(422).json({"error": "One or more fields are missing."})
+        return res.status(422).json({ "error": "One or more fields are missing." })
     }
 
     const post = await Post.findById<IPost>({ _id })
@@ -122,13 +200,13 @@ async function update(req: Request, res: Response, next: NextFunction) {
     if (!post) {
         // 404 Not Found
         console.log("Not found?")
-        return res.status(404).json({"error": "Post not found."})
+        return res.status(404).json({ "error": "Post not found." })
     }
 
     if (post.author._id?.toString() !== userId) {
         // 401 Unauthorized
         console.log("Not the author.")
-        return res.status(401).json({"error": "You're not the author of this post."})
+        return res.status(401).json({ "error": "You're not the author of this post." })
     }
 
     // TODO Validate title and content size
@@ -167,20 +245,20 @@ async function deletePost(req: Request, res: Response, next: NextFunction) {
     if (!post) {
         // 404 Not Found
         console.log("Not found.")
-        return res.status(404).json({"error": "Post not found."})
+        return res.status(404).json({ "error": "Post not found." })
     }
 
     if (post.author._id?.toString() !== userId) {
         // 401 Unauthorized
         console.log("Not the author.")
-        return res.status(401).json({"error": "You're not the author of this post."})
+        return res.status(401).json({ "error": "You're not the author of this post." })
     }
 
     post.deleteOne()
         .then(() => {
             // 200 OK
             console.log("Post deleted.")
-            return res.status(200).json({"message": "Post deleted."})
+            return res.status(200).json({ "message": "Post deleted." })
         })
         .catch((error) => { return serverError(res, error) })
 
@@ -189,7 +267,9 @@ async function deletePost(req: Request, res: Response, next: NextFunction) {
 export default {
     create,
     getByPostId,
-    getPosts,
+    getAll,
+    getByDateRange,
+    getCountByMonth,
     update,
     deletePost
 }
