@@ -79,7 +79,7 @@ function getByPostId(req: Request, res: Response, next: NextFunction) {
 // 
 // Get posts (with amount and skip)
 //
-function getAll(req: Request, res: Response, next: NextFunction) {
+async function getAll(req: Request, res: Response, next: NextFunction) {
     console.log("Getting posts...")
 
     const { amount, skip } = req.query
@@ -90,6 +90,9 @@ function getAll(req: Request, res: Response, next: NextFunction) {
 
     // TODO limit max amount?
 
+    // Returning total amount for pagination
+    const count = await Post.countDocuments()
+
     Post.find<IPost>()
         .sort({ updatedAt: "descending" })
         .skip(skipInt)
@@ -97,38 +100,51 @@ function getAll(req: Request, res: Response, next: NextFunction) {
         .populate("author")
         .then(posts => {
             console.log("Returning posts.")
-            return res.status(200).json(posts)
+            return res.status(200).json({ "totalCount": count, "posts": posts })
         })
         .catch((error) => { return serverError(res, error) })
 }
 
+// TODO Join all and by date range, with queries?
+
 // 
 // Get posts by date range
 // 
-function getByDateRange(req: Request, res: Response, next: NextFunction) {
+async function getByDateRange(req: Request, res: Response, next: NextFunction) {
     console.log("Getting posts by date range...")
 
     const { startDateEpochMs, endDateEpochMs } = req.params
+    const { amount, skip } = req.query
 
     const startDate = new Date(Number(startDateEpochMs))
     const endDate = new Date(Number(endDateEpochMs))
 
-    const dateValidation = z
-        .object({ startDate: z.date(), endDate: z.date() })
-        .safeParse({ startDate, endDate })
+    const validations = z
+        .object({
+            startDate: z.date(),
+            endDate: z.date(),
+            amount: z.coerce.number().default(10).catch(10),
+            skip: z.coerce.number().default(0).catch(0)
+        })
+        .safeParse({ startDate, endDate, amount, skip })
 
-    if (!dateValidation.success) {
+    if (!validations.success) {
         // 422 Unprocessable Content
         console.log("Invalid date.")
         return res.status(422).json({ "error": "Invalid date." })
     }
 
+    // Returning total amount for pagination
+    const count = await Post.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } })
+
     Post.find<IPost>({ createdAt: { $gte: startDate, $lte: endDate } })
         .sort({ updatedAt: "descending" })
+        .skip(validations.data.skip)
+        .limit(validations.data.amount)
         .populate("author")
         .then(posts => {
             console.log("Returning posts by date.")
-            return res.status(200).json(posts)
+            return res.status(200).json({ "totalCount": count, "posts": posts })
         })
         .catch((error) => { return serverError(res, error) })
 }
