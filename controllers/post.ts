@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express"
+import { FilterQuery } from "mongoose"
 import { z } from "zod"
 // 
 import { serverError } from "../helpers/serverError"
@@ -7,7 +8,6 @@ import IPostsCountByMonth from "../interfaces/postsCountByMonth"
 import IUser from "../interfaces/user"
 import Post from "../models/post"
 import User from "../models/user"
-import post from "../models/post"
 
 // 
 // Create
@@ -77,74 +77,55 @@ function getByPostId(req: Request, res: Response, next: NextFunction) {
 }
 
 // 
-// Get posts (with amount and skip)
+// Get posts
 //
 async function getAll(req: Request, res: Response, next: NextFunction) {
     console.log("Getting posts...")
 
-    const { amount, skip } = req.query
+    const { startDate, endDate, sort, count, skip } = req.query
 
     // Validate queries
-    const amountInt = z.coerce.number().default(10).catch(10).parse(amount)
-    const skipInt = z.coerce.number().default(0).catch(0).parse(skip)
-
-    // TODO limit max amount?
-
-    // Returning total amount for pagination
-    const count = await Post.countDocuments()
-
-    Post.find<IPost>()
-        .sort({ updatedAt: "descending" })
-        .skip(skipInt)
-        .limit(amountInt)
-        .populate("author")
-        .then(posts => {
-            console.log("Returning posts.")
-            return res.status(200).json({ "totalCount": count, "posts": posts })
-        })
-        .catch((error) => { return serverError(res, error) })
-}
-
-// TODO Join all and by date range, with queries?
-
-// 
-// Get posts by date range
-// 
-async function getByDateRange(req: Request, res: Response, next: NextFunction) {
-    console.log("Getting posts by date range...")
-
-    const { startDateEpochMs, endDateEpochMs } = req.params
-    const { amount, skip } = req.query
-
-    const startDate = new Date(Number(startDateEpochMs))
-    const endDate = new Date(Number(endDateEpochMs))
-
     const validations = z
         .object({
-            startDate: z.date(),
-            endDate: z.date(),
-            amount: z.coerce.number().default(10).catch(10),
+            startDate: z.coerce.number().optional(),
+            endDate: z.coerce.number().optional(),
+            sort: z.enum(["asc", "desc"]).default("desc").catch("desc"),
+            count: z.coerce.number().default(10).catch(10),
             skip: z.coerce.number().default(0).catch(0)
         })
-        .safeParse({ startDate, endDate, amount, skip })
+        .safeParse({ startDate, endDate, sort, count, skip })
 
     if (!validations.success) {
         // 422 Unprocessable Content
-        console.log("Invalid date.")
-        return res.status(422).json({ "error": "Invalid date." })
+        console.log("Invalid queries.")
+        return res.status(422).json({ "error": "Invalid queries." })
     }
 
-    // Returning total amount for pagination
-    const count = await Post.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } })
+    // Setup date filters
+    let filters: FilterQuery<IPost> = {}
+    if (startDate || endDate) {
+        filters = { createdAt: {} }
+        if (startDate) {
+            filters.createdAt.$gte = new Date(Number(validations.data.startDate))
+        }
+        if (endDate) {
+            filters.createdAt.$lte = new Date(Number(validations.data.endDate))
+        }
+    }
 
-    Post.find<IPost>({ createdAt: { $gte: startDate, $lte: endDate } })
-        .sort({ updatedAt: "descending" })
+    // TODO limit max amount?
+
+    // Returning total amount for pagination (with filters)
+    const totalCount = await Post.countDocuments(filters)
+
+    Post.find<IPost>(filters)
+        .sort({ updatedAt: validations.data.sort })
         .skip(validations.data.skip)
-        .limit(validations.data.amount)
+        .limit(validations.data.count)
         .populate("author")
         .then(posts => {
-            console.log("Returning posts by date.")
-            return res.status(200).json({ "totalCount": count, "posts": posts })
+            console.log("Returning posts.")
+            return res.status(200).json({ "totalCount": totalCount, "posts": posts })
         })
         .catch((error) => { return serverError(res, error) })
 }
@@ -266,7 +247,6 @@ export default {
     create,
     getByPostId,
     getAll,
-    getByDateRange,
     getCountByMonth,
     update,
     deletePost
