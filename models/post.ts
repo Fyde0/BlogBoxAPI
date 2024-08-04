@@ -12,16 +12,17 @@ const PostSchema: Schema = new Schema<IPost>(
             required: true
         },
         content: { type: String },
-        picture: { type: String }
+        picture: { type: String },
+        tags: { type: [String] }
     },
     {
         timestamps: true
     }
 )
 
-// Generates the postId based on the createdAt time when creating a new post
-PostSchema.pre<HydratedDocument<IPost>>('save', function (next) {
-    if (this !== undefined && this.isNew && this.createdAt) {
+// Generates the postId based on the createdAt time when saving a post
+PostSchema.pre<HydratedDocument<IPost>>(["save"], function (next) {
+    if (this !== undefined && this.createdAt) {
         // YYYY/MM/DD
         const formattedDate = this.createdAt.toISOString().split('T')[0].replace(/-/g, "/")
         // YYYY/MM/DD/word1-word2-word3

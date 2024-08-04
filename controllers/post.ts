@@ -15,10 +15,10 @@ import User from "../models/user"
 async function create(req: Request, res: Response, next: NextFunction) {
     console.log("Creating post...")
 
-    const { title, content, picture } = req.body
+    const post: IPost = req.body
     const userId = req.session.userId
 
-    if (!title || !content) {
+    if (!post.title || !post.content) {
         // 422 Unprocessable Content
         console.log("Missing fields.")
         return res.status(422).json({ "error": "One or more fields are missing." })
@@ -35,11 +35,9 @@ async function create(req: Request, res: Response, next: NextFunction) {
     }
 
     const newPost = new Post<IPost>({
-        title,
+        ...post,
         // the author is whoever is logged in
-        author: user,
-        content,
-        picture
+        author: user
     })
 
     // TODO Check for postId already existing?
@@ -164,16 +162,16 @@ async function update(req: Request, res: Response, next: NextFunction) {
     console.log("Updating post...")
 
     const { _id } = req.params
-    const { title, content, picture } = req.body
+    const updatedPost: IPost = req.body
     const userId = req.session.userId
 
-    if (!title || !content) {
+    if (!updatedPost.title || !updatedPost.content) {
         // 422 Unprocessable Content
         console.log("Missing fields.")
         return res.status(422).json({ "error": "One or more fields are missing." })
     }
 
-    const post = await Post.findById<IPost>({ _id })
+    const post = await Post.findById({ _id })
         .populate("author")
 
     if (!post) {
@@ -190,13 +188,9 @@ async function update(req: Request, res: Response, next: NextFunction) {
 
     // TODO Validate title and content size
 
-    const updatedPost = {
-        title,
-        content,
-        picture
-    }
+    post.set(updatedPost)
 
-    Post.findByIdAndUpdate(_id, updatedPost)
+    post.save()
         .then(post => {
             if (!post) {
                 return serverError(res, "Server error")

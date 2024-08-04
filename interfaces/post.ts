@@ -8,6 +8,7 @@ interface IPost {
     author: IUser
     content: string
     picture?: string
+    tags?: string[]
     createdAt?: Date
     updatedAt?: Date
 }
