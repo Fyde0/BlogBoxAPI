@@ -80,29 +80,33 @@ function getByPostId(req: Request, res: Response, next: NextFunction) {
 async function getAll(req: Request, res: Response, next: NextFunction) {
     console.log("Getting posts...")
 
-    const { startDate, endDate, sort, count, skip } = req.query
+    const { startDate, endDate, tags, sort, count, skip } = req.query
+
+    const tagsArray = typeof tags === "string" && tags.split(',')
 
     // Validate queries
     const validations = z
         .object({
             startDate: z.coerce.number().optional(),
             endDate: z.coerce.number().optional(),
+            tagsArray: z.array(z.string()).optional(),
             sort: z.enum(["asc", "desc"]).default("desc").catch("desc"),
-            count: z.coerce.number().default(10).catch(10),
+            count: z.coerce.number().max(100).default(10).catch(10),
             skip: z.coerce.number().default(0).catch(0)
         })
-        .safeParse({ startDate, endDate, sort, count, skip })
+        .safeParse({ startDate, endDate, tagsArray, sort, count, skip })
 
     if (!validations.success) {
         // 422 Unprocessable Content
-        console.log("Invalid queries.")
+        console.log(validations.error)
         return res.status(422).json({ "error": "Invalid queries." })
     }
 
-    // Setup date filters
+    // Setup filters
     let filters: FilterQuery<IPost> = {}
+    // not using validated values because they can't be undefined
     if (startDate || endDate) {
-        filters = { createdAt: {} }
+        filters.createdAt = {}
         if (startDate) {
             filters.createdAt.$gte = new Date(Number(validations.data.startDate))
         }
@@ -110,8 +114,10 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
             filters.createdAt.$lte = new Date(Number(validations.data.endDate))
         }
     }
-
-    // TODO limit max amount?
+    if (tags) {
+        filters.tags = {}
+        filters.tags.$all = validations.data.tagsArray
+    }
 
     // Returning total amount for pagination (with filters)
     const totalCount = await Post.countDocuments(filters)
@@ -134,23 +140,38 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 function getCountByMonth(req: Request, res: Response, next: NextFunction) {
     console.log("Getting amount of posts by publish month...")
 
-    // Aggregate and order posts by year and month
-    Post.aggregate<IPostsCountByMonth>([
-        {
-            $group: {
-                _id: {
+    Post.aggregate()
+        .group(
+            {
+                _id:
+                {
                     year: { $year: "$createdAt" },
                     month: { $month: "$createdAt" }
                 },
                 count: { $sum: 1 }
             }
-        },
-        {
-            $sort: { "_id.year": 1, "_id.month": 1 }
-        }])
+        )
+        .sort({ "_id.year": "desc", "_id.month": "desc" })
         .then(result => {
             console.log("Returning amount of posts by publish month.")
             return res.status(200).json(result)
+        })
+        .catch((error) => { return serverError(res, error) })
+}
+
+// 
+// Get tags
+// 
+function getTags(req: Request, res: Response, next: NextFunction) {
+    console.log("Getting tags...")
+
+    Post.aggregate()
+        .unwind("$tags")
+        .group({ _id: "$tags" })
+        .then(result => {
+            const tagsArray = result.map(obj => obj._id)
+            console.log("Returning tags.")
+            return res.status(200).json(tagsArray)
         })
         .catch((error) => { return serverError(res, error) })
 }
@@ -242,6 +263,7 @@ export default {
     getByPostId,
     getAll,
     getCountByMonth,
+    getTags,
     update,
     deletePost
 }
