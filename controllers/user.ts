@@ -4,6 +4,7 @@ import { z } from "zod"
 //
 import { serverError } from "../helpers/serverError"
 import IUser, { IUserInfo } from "../interfaces/user"
+import { defaultUserSettings, isIUserSettings } from "../interfaces/userSettings"
 import User from "../models/user"
 
 // 
@@ -12,7 +13,7 @@ import User from "../models/user"
 async function register(req: Request, res: Response, next: NextFunction) {
     console.log("Creating user...")
 
-    let user: IUser = { ...req.body, admin: false }
+    let { username, password } = req.body
 
     // Validate username and password
 
@@ -29,7 +30,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
             .min(4, { message: "The password must be between 4 and 50 characters." })
             .max(50, { message: "The password must be between 4 and 50 characters." }),
     })
-        .safeParse({ username: user.username, password: user.password })
+        .safeParse({ username, password })
 
     if (!validationResult.success) {
         // 422 Unprocessable Content
@@ -38,7 +39,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
     }
 
     // Check if user already exists
-    if (await User.exists({ username: user.username }) !== null) {
+    if (await User.exists({ username }) !== null) {
         // 409 Conflict
         console.log("Username already taken.")
         return res.status(409).json({ "error": "This username is already taken." })
@@ -46,7 +47,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
 
     // Hash password
     const saltRounds = 10
-    const hash = await bcrypt.hash(user.password, saltRounds)
+    const hash = await bcrypt.hash(password, saltRounds)
     if (!hash) {
         return serverError(res, "BCrypt error.")
     }
@@ -54,9 +55,10 @@ async function register(req: Request, res: Response, next: NextFunction) {
     // Create new User
     // Need the interface, Typescript doesn't validate Models
     const newUser = new User<IUser>({
-        username: user.username,
+        username: username,
         password: hash,
-        admin: user.admin
+        settings: defaultUserSettings,
+        admin: false
     })
 
     newUser.save()
@@ -88,7 +90,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     }
 
     // Get and validate user, include password
-    const user = await User.findOne<IUser>({ username }).select("+password")
+    const user = await User.findOne<IUser>({ username }).select("+password +settings")
     if (!user) {
         // 401 Unauthorized
         console.log("User not found.")
@@ -120,9 +122,10 @@ async function login(req: Request, res: Response, next: NextFunction) {
                     username: user.username,
                     admin: user.admin
                 }
+                const userSettings = user.settings
                 // 200 OK
                 console.log("User logged in.")
-                return res.status(200).json(userInfo)
+                return res.status(200).json({ userInfo, userSettings })
             }
         })
     })
@@ -172,9 +175,54 @@ function ping(req: Request, res: Response, next: NextFunction) {
     return res.status(200).json({ "message": "Still logged in." })
 }
 
+// 
+// Change settings
+// 
+async function changeSettings(req: Request, res: Response, next: NextFunction) {
+    console.log("Changing settings...")
+
+    if (!req.session.userId) {
+        // 204 No Content
+        console.log("User not logged in")
+        return res.status(204).json({ "error": "You're not logged in." })
+    }
+
+    if (!isIUserSettings(req.body)) {
+        // 422 Unprocessable Content
+        console.log("Invalid object.")
+        return res.status(422).json({ "error": "Invalid settings." })
+    }
+
+    const _id = req.session.userId
+    const userSettings = req.body
+
+    // Get and validate user, include password
+    const user = await User.findOne({ _id })
+    if (!user) {
+        // 401 Unauthorized
+        console.log("User not found.")
+        return res.status(401).json({ "error": "User not found" })
+    }
+
+    user.set("settings", userSettings)
+
+
+    user.save()
+        .then(user => {
+            if (!user) {
+                return serverError(res, "Server error")
+            }
+            // 201 Created
+            console.log("Settings updated.")
+            return res.status(201).json(user.settings)
+        })
+        .catch((error) => { return serverError(res, error) })
+}
+
 export default {
     register,
     login,
     logout,
-    ping
+    ping,
+    changeSettings
 }

@@ -3,7 +3,7 @@ import { FilterQuery } from "mongoose"
 import { z } from "zod"
 // 
 import { serverError } from "../helpers/serverError"
-import IPost from "../interfaces/post"
+import IPost, { isIPost } from "../interfaces/post"
 import IPostsCountByMonth from "../interfaces/postsCountByMonth"
 import IUser from "../interfaces/user"
 import Post from "../models/post"
@@ -140,7 +140,7 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 function getCountByMonth(req: Request, res: Response, next: NextFunction) {
     console.log("Getting amount of posts by publish month...")
 
-    Post.aggregate()
+    Post.aggregate<IPostsCountByMonth>()
         .group(
             {
                 _id:
@@ -183,14 +183,15 @@ async function update(req: Request, res: Response, next: NextFunction) {
     console.log("Updating post...")
 
     const { _id } = req.params
-    const updatedPost: IPost = req.body
     const userId = req.session.userId
 
-    if (!updatedPost.title || !updatedPost.content) {
+    if (!isIPost(req.body)) {
         // 422 Unprocessable Content
         console.log("Missing fields.")
         return res.status(422).json({ "error": "One or more fields are missing." })
     }
+
+    const updatedPost = req.body
 
     const post = await Post.findById({ _id })
         .populate("author")
