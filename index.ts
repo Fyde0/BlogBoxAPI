@@ -30,7 +30,7 @@ app.use(cors({
     credentials: true,
     origin: config.client
 }))
-app.use(express.urlencoded({ extended: true }))
+app.use(express.urlencoded({ extended: true, limit: "5mb" }))
 app.use(express.json())
 
 // Interface for session content
@@ -55,6 +55,9 @@ app.use(session({
         // maxAge: 1000 * 10
     }
 }))
+
+// Public files
+app.use(express.static('public'))
 
 // Routes
 app.use("/posts", postRoutes)

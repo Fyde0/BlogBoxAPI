@@ -2,11 +2,14 @@ import mongoose from "mongoose";
 import IUserSettings from "./userSettings";
 
 interface IUser {
-    _id?: mongoose.Types.ObjectId
+    _id?: string
     username: string
     password: string
     settings: IUserSettings
     admin: boolean
+    avatar?: string | File
+    name?: string
+    about?: string
 }
 
 export type IUserInfo = Omit<IUser, "password" | "settings">

@@ -5,7 +5,9 @@ interface IConfig {
     mongoose: {
         url: string,
         options?: any
-    }
+    },
+    publicDir: string // where to put images and stuff
+    avatarsDir: string
 }
 
 const config: IConfig = {
@@ -16,6 +18,8 @@ const config: IConfig = {
         url: "",
         options: {}
     }
+    publicDir: "public/",
+    avatarsDir: "public/avatars"
 }
 
 export default config

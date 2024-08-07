@@ -219,10 +219,20 @@ async function changeSettings(req: Request, res: Response, next: NextFunction) {
         .catch((error) => { return serverError(res, error) })
 }
 
+// 
+// Update user info
+// 
+function updateUserInfo(req: Request, res: Response, next: NextFunction) {
+    console.log("Updating user info...")
+
+    console.log(req.file)
+}
+
 export default {
     register,
     login,
     logout,
     ping,
-    changeSettings
+    changeSettings,
+    updateUserInfo
 }
