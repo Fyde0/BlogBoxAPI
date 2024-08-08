@@ -121,7 +121,8 @@ async function login(req: Request, res: Response, next: NextFunction) {
             if (error) {
                 return serverError(res, error)
             } else {
-                const { _id, password, settings, ...userInfo } = user
+                // need the _id for checks in client
+                const { password, settings, ...userInfo } = user
                 const userSettings = user.settings
                 // 200 OK
                 console.log("User logged in.")
