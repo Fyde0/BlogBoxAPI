@@ -263,7 +263,6 @@ async function updateUserInfo(req: Request, res: Response, next: NextFunction) {
                 return serverError(res, "Update profile error")
             }
             const updatedUserInfo = user.toObject() as IUserInfo
-            delete updatedUserInfo._id
             console.log("Profile updated.")
             return res.status(200).json(updatedUserInfo)
         })
