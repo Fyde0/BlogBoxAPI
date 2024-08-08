@@ -229,6 +229,24 @@ async function updateUserInfo(req: Request, res: Response, next: NextFunction) {
         return res.status(401).json({ "error": "User not found" })
     }
 
+    const validationResult = z.object({
+        name: z.string()
+            .max(50, { message: "Your name can't be longer than 50 characters." })
+            .optional(),
+        about: z.string()
+            .max(500, { message: "Your About me field can't be longer than 500 characters." })
+            .optional(),
+    }).safeParse({
+        name: newUserInfo.name,
+        about: newUserInfo.about
+    })
+
+    if (!validationResult.success) {
+        // 422 Unprocessable Content
+        console.log("Validation error.")
+        return res.status(422).json({ "error": validationResult.error.issues[0].message })
+    }
+
     user.set({ ...newUserInfo })
 
     if (avatarFilename) {
