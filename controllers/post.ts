@@ -203,9 +203,9 @@ async function update(req: Request, res: Response, next: NextFunction) {
     }
 
     if (post.author._id?.toString() !== userId) {
-        // 401 Unauthorized
+        // 403 Forbidden
         console.log("Not the author.")
-        return res.status(401).json({ "error": "You're not the author of this post." })
+        return res.status(403).json({ "error": "You're not the author of this post." })
     }
 
     // TODO Validate title and content size
@@ -244,9 +244,9 @@ async function deletePost(req: Request, res: Response, next: NextFunction) {
     }
 
     if (post.author._id?.toString() !== userId) {
-        // 401 Unauthorized
+        // 403 Forbidden
         console.log("Not the author.")
-        return res.status(401).json({ "error": "You're not the author of this post." })
+        return res.status(403).json({ "error": "You're not the author of this post." })
     }
 
     post.deleteOne()
