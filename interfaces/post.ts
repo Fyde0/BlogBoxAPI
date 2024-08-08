@@ -1,8 +1,7 @@
-import mongoose from "mongoose";
-import IUser, { isIUserInfo, IUserInfo } from './user';
+import { isIUserInfo, IUserInfo } from './user';
 
 interface IPost {
-    _id?: mongoose.Types.ObjectId
+    _id?: string
     postId?: string
     title: string
     author: IUserInfo

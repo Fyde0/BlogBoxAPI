@@ -14,10 +14,13 @@ const UserSchema: Schema = new Schema<IUser>(
     {
         username: { type: String, required: true, unique: true },
         // "select: false" doesn't return field unless specified
-        // (only needed for login)
+        // this is to make the schema IUserInfo by default
         password: { type: String, required: true, select: false },
         settings: { type: UserSettingsSchema, select: false },
-        admin: { type: Boolean, default: false }
+        admin: { type: Boolean, default: false },
+        avatar: { type: String },
+        name: { type: String },
+        about: { type: String }
     },
     {
         timestamps: true

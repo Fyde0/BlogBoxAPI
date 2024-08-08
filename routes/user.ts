@@ -9,7 +9,7 @@ router.post("/register", controller.register)
 router.post("/login", controller.login)
 router.get("/logout", controller.logout)
 router.get("/ping", checkIfAuthenticated, controller.ping)
-router.post("/settings", checkIfAuthenticated, controller.changeSettings)
+router.patch("/settings", checkIfAuthenticated, controller.changeSettings)
 router.patch("/update", checkIfAuthenticated, uploadAvatar, controller.updateUserInfo)
 
 export default router

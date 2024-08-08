@@ -3,7 +3,7 @@ import bcrypt from "bcrypt"
 import { z } from "zod"
 //
 import { serverError } from "../helpers/serverError"
-import IUser, { IUserInfo } from "../interfaces/user"
+import IUser, { isIUserInfo, IUserInfo } from "../interfaces/user"
 import { defaultUserSettings, isIUserSettings } from "../interfaces/userSettings"
 import User from "../models/user"
 
@@ -90,12 +90,16 @@ async function login(req: Request, res: Response, next: NextFunction) {
     }
 
     // Get and validate user, include password
-    const user = await User.findOne<IUser>({ username }).select("+password +settings")
-    if (!user) {
+    // <IUser> works normally but not for destructuring
+    // so we need to get the document and then convert it
+    const userDoc = await User.findOne({ username }).select("+password +settings")
+    if (!userDoc) {
         // 401 Unauthorized
         console.log("User not found.")
         return res.status(401).json({ "error": "Wrong username or password." })
     }
+
+    const user = userDoc.toObject()
 
     // Validate password
     const validPassword = await bcrypt.compare(password, user.password)
@@ -117,11 +121,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
             if (error) {
                 return serverError(res, error)
             } else {
-                const userInfo: IUserInfo = {
-                    _id: user._id,
-                    username: user.username,
-                    admin: user.admin
-                }
+                const { _id, password, settings, ...userInfo } = user
                 const userSettings = user.settings
                 // 200 OK
                 console.log("User logged in.")
@@ -181,12 +181,6 @@ function ping(req: Request, res: Response, next: NextFunction) {
 async function changeSettings(req: Request, res: Response, next: NextFunction) {
     console.log("Changing settings...")
 
-    if (!req.session.userId) {
-        // 204 No Content
-        console.log("User not logged in")
-        return res.status(204).json({ "error": "You're not logged in." })
-    }
-
     if (!isIUserSettings(req.body)) {
         // 422 Unprocessable Content
         console.log("Invalid object.")
@@ -196,7 +190,7 @@ async function changeSettings(req: Request, res: Response, next: NextFunction) {
     const _id = req.session.userId
     const userSettings = req.body
 
-    // Get and validate user, include password
+    // Don't need settings cause we're overwriting anyway
     const user = await User.findOne({ _id })
     if (!user) {
         // 401 Unauthorized
@@ -206,15 +200,13 @@ async function changeSettings(req: Request, res: Response, next: NextFunction) {
 
     user.set("settings", userSettings)
 
-
     user.save()
         .then(user => {
             if (!user) {
-                return serverError(res, "Server error")
+                return serverError(res, "Change settings error")
             }
-            // 201 Created
             console.log("Settings updated.")
-            return res.status(201).json(user.settings)
+            return res.status(200).json(user.settings)
         })
         .catch((error) => { return serverError(res, error) })
 }
@@ -222,10 +214,41 @@ async function changeSettings(req: Request, res: Response, next: NextFunction) {
 // 
 // Update user info
 // 
-function updateUserInfo(req: Request, res: Response, next: NextFunction) {
+async function updateUserInfo(req: Request, res: Response, next: NextFunction) {
     console.log("Updating user info...")
 
-    console.log(req.file)
+    const _id = req.session.userId
+    const avatarFilename = req.file?.filename
+    const newUserInfo = req.body
+
+    const user = await User.findOne({ _id })
+    if (!user) {
+        // 401 Unauthorized
+        console.log("User not found.")
+        return res.status(401).json({ "error": "User not found" })
+    }
+
+    user.set({ ...newUserInfo })
+
+    if (avatarFilename) {
+        user.set("avatar", avatarFilename)
+    }
+
+    if (newUserInfo.deleteAvatar) {
+        user.set("avatar", undefined)
+    }
+
+    user.save()
+        .then((user) => {
+            if (!user) {
+                return serverError(res, "Update profile error")
+            }
+            const updatedUserInfo = user.toObject() as IUserInfo
+            delete updatedUserInfo._id
+            console.log("Profile updated.")
+            return res.status(200).json(updatedUserInfo)
+        })
+        .catch((error) => { return serverError(res, error) })
 }
 
 export default {
