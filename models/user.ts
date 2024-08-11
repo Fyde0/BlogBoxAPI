@@ -17,7 +17,7 @@ const UserSchema: Schema = new Schema<IUser>(
         // this is to make the schema IUserInfo by default
         password: { type: String, required: true, select: false },
         settings: { type: UserSettingsSchema, select: false },
-        admin: { type: Boolean, default: false },
+        admin: { type: Boolean, select: false, default: false },
         avatar: { type: String },
         name: { type: String },
         about: { type: String }

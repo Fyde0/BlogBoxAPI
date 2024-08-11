@@ -92,7 +92,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     // Get and validate user, include password
     // <IUser> works normally but not for destructuring
     // so we need to get the document and then convert it
-    const userDoc = await User.findOne({ username }).select("+password +settings")
+    const userDoc = await User.findOne({ username }).select("+password +settings +admin")
     if (!userDoc) {
         // 401 Unauthorized
         console.log("User not found.")
@@ -122,11 +122,11 @@ async function login(req: Request, res: Response, next: NextFunction) {
                 return serverError(res, error)
             } else {
                 // need the _id for checks in client
-                const { password, settings, ...userInfo } = user
+                const { password, settings, admin, ...userInfo } = user
                 const userSettings = user.settings
                 // 200 OK
                 console.log("User logged in.")
-                return res.status(200).json({ userInfo, userSettings })
+                return res.status(200).json({ userInfo, userSettings, admin })
             }
         })
     })
@@ -171,9 +171,18 @@ function logout(req: Request, res: Response, next: NextFunction) {
 function ping(req: Request, res: Response, next: NextFunction) {
     console.log("Pinging user...")
 
-    // 200 OK
-    console.log("Pinged.")
-    return res.status(200).json({ "message": "Still logged in." })
+    User.findOne<IUser>({ _id: req.session.userId })
+        .select("+admin")
+        .then(user => {
+            if (!user) {
+                // 401 Unauthorized
+                console.log("User doesn't exist in ping.")
+                return res.status(401).json({ "error": "Invalid credentials." })
+            }
+            // 200 OK
+            console.log("Pinged.")
+            return res.status(200).json({ isAdmin: user.admin })
+        })
 }
 
 // 

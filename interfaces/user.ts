@@ -12,10 +12,10 @@ interface IUser {
     about?: string
 }
 
-export type IUserInfo = Omit<IUser, "password" | "settings">
+export type IUserInfo = Omit<IUser, "password" | "settings" | "admin">
 
 export function isIUserInfo(obj: IUserInfo): obj is IUserInfo {
-    return obj.username && obj.admin !== undefined ? true : false
+    return obj.username ? true : false
 }
 
 export default IUser
