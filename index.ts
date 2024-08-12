@@ -5,8 +5,11 @@ import session from "express-session"
 // Routes and config
 import postRoutes from "./routes/post"
 import userRoutes from "./routes/user"
+import blogSettingsRoutes from "./routes/blogSettings"
 import { serverError } from "./helpers/serverError"
 import config from "./config"
+import BlogSettings from "./models/blogSettings"
+import { defaultBlogSettings } from "./interfaces/blogSettings"
 
 const app = express()
 const PORT = config.port
@@ -62,6 +65,7 @@ app.use(express.static('public'))
 // Routes
 app.use("/posts", postRoutes)
 app.use("/users", userRoutes)
+app.use("/blog", blogSettingsRoutes)
 // Invalid route / Not found
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log("Invalid route")
@@ -74,8 +78,15 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 // Connect to DB and listen for requests
 mongoose.connect(config.mongoose.url, config.mongoose.options)
-    .then(res => {
+    .then(async () => {
         console.log("Connected to MongoDB.")
+
+        // Initialize blog settings if they don't exist
+        if (! await BlogSettings.exists({})) {
+            BlogSettings.create(defaultBlogSettings)
+        }
+
+        // Start listening
         app.listen(PORT, () => {
             console.log("Listening on port " + PORT + "...")
         }).on("error", (error) => {
