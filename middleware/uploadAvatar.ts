@@ -4,7 +4,7 @@ import { serverError } from "../helpers/serverError";
 import config from "../config";
 
 const storage = multer.diskStorage({
-    destination: config.publicDir + "avatars",
+    destination: config.avatarsDir,
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9)
         cb(null, file.fieldname + "-" + uniqueSuffix)
@@ -34,8 +34,8 @@ function uploadAvatar(req: Request, res: Response, next: NextFunction) {
                 // 422 Unprocessable Content
                 console.log(error.message)
                 return res.status(422).json({ "error": error.message })
-            } else if (error) {
-                serverError(res, "File upload error.")
+            } else {
+                return serverError(res, "File upload error.")
             }
         }
         next()

@@ -15,7 +15,8 @@ import User from "../models/user"
 async function create(req: Request, res: Response, next: NextFunction) {
     console.log("Creating post...")
 
-    const post: IPost = req.body
+    const post: IPost = JSON.parse(req.body.post)
+    post.picture = req.body.thumbnail
     const userId = req.session.userId
 
     if (!post.title || !post.content) {
@@ -184,14 +185,15 @@ async function update(req: Request, res: Response, next: NextFunction) {
 
     const { _id } = req.params
     const userId = req.session.userId
+    const updatedPost = JSON.parse(req.body.post)
 
-    if (!isIPost(req.body)) {
+    if (!isIPost(updatedPost)) {
         // 422 Unprocessable Content
         console.log("Missing fields.")
         return res.status(422).json({ "error": "One or more fields are missing." })
     }
 
-    const updatedPost = req.body
+    updatedPost.picture = req.body.thumbnail
 
     const post = await Post.findById({ _id })
         .populate("author")

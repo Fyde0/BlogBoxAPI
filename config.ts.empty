@@ -8,6 +8,7 @@ interface IConfig {
     },
     publicDir: string // where to put images and stuff
     avatarsDir: string
+    thumbsDir: string
 }
 
 const config: IConfig = {
@@ -19,7 +20,8 @@ const config: IConfig = {
         options: {}
     }
     publicDir: "public/",
-    avatarsDir: "public/avatars"
+    avatarsDir: "public/avatars",
+    thumbsDir: "public/thumbs"
 }
 
 export default config
