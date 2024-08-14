@@ -193,7 +193,13 @@ async function update(req: Request, res: Response, next: NextFunction) {
         return res.status(422).json({ "error": "One or more fields are missing." })
     }
 
-    updatedPost.picture = req.body.thumbnail
+    if (req.body.thumbnail) {
+        updatedPost.picture = req.body.thumbnail
+    }
+
+    if (req.body.deleteThumbnail) {
+        updatedPost.picture = undefined
+    }
 
     const post = await Post.findById({ _id })
         .populate("author")
