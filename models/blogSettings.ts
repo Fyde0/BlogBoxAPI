@@ -4,6 +4,7 @@ import IBlogSettings from "../interfaces/blogSettings";
 
 const BlogSettingsSchema: Schema = new Schema<IBlogSettings>(
     {
+        title: { type: String },
         theme: { type: String, enum: ["minty", "flatly", "cosmo"], default: "minty" }
     },
     {
