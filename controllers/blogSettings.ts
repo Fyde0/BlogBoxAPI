@@ -36,7 +36,6 @@ async function changeBlogSettings(req: Request, res: Response, next: NextFunctio
 
     const newBlogSettings = req.body
 
-    // Don't need settings cause we're overwriting anyway
     const blogSettings = await BlogSettings.findOne()
     if (!blogSettings) {
         return serverError(res, "No blog settings?")
