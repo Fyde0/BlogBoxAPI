@@ -1,10 +1,9 @@
 import { Request, Response, NextFunction } from "express"
 import multer from "multer";
 import { serverError } from "../helpers/serverError";
-import config from "../config";
 
 const storage = multer.diskStorage({
-    destination: config.avatarsDir,
+    destination: process.env.AVATARS_DIR,
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9)
         cb(null, file.fieldname + "-" + uniqueSuffix)

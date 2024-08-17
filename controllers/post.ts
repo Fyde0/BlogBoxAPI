@@ -83,7 +83,7 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 
     const { startDate, endDate, tags, sort, count, skip } = req.query
 
-    const tagsArray = typeof tags === "string" && tags.split(',')
+    const tagsArray = typeof tags === "string" ? tags.split(',') : []
 
     // Validate queries
     const validations = z

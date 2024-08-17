@@ -3,7 +3,6 @@ import multer from "multer";
 import sharp from "sharp";
 // 
 import { serverError } from "../helpers/serverError";
-import config from "../config";
 
 const upload = multer(
     {
@@ -42,7 +41,7 @@ function uploadThumbnail(req: Request, res: Response, next: NextFunction) {
         sharp(req.file.buffer)
             .resize({ width: 200, height: 200 })
             .jpeg({ quality: 100 })
-            .toFile(config.thumbsDir + "/" + fileName)
+            .toFile(process.env.THUMBS_DIR + "/" + fileName)
             .then(() => {
                 req.body.thumbnail = fileName
                 next()

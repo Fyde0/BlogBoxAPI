@@ -1,18 +1,36 @@
+import dotenv from "dotenv"
 import express, { Request, Response, NextFunction } from "express"
 import cors from "cors"
 import mongoose from "mongoose"
 import session from "express-session"
-// Routes and config
+//
 import postRoutes from "./routes/post"
 import userRoutes from "./routes/user"
 import blogSettingsRoutes from "./routes/blogSettings"
 import { serverError } from "./helpers/serverError"
-import config from "./config"
 import BlogSettings from "./models/blogSettings"
 import { defaultBlogSettings } from "./interfaces/blogSettings"
 
+dotenv.config()
+
+if(!process.env.SESSION_SECRET) {
+    throw new Error("Environment variable SESSION_SECRET required.")
+}
+
+if(!process.env.MONGODB_URL) {
+    throw new Error("Environment variable MONGODB_URL required.")
+}
+
+// env defaults
+process.env.PORT = process.env.PORT || "3000"
+process.env.CORS_ORIGIN_CLIENT = process.env.CORS_ORIGIN_CLIENT || "true"
+process.env.SECURE_COOKIES = process.env.SECURE_COOKIES || "false"
+process.env.PUBLIC_DIR = process.env.PUBLIC_DIR || "public/"
+process.env.AVATARS_DIR = process.env.AVATARS_DIR || "public/avatars"
+process.env.THUMBS_DIR = process.env.THUMBS_DIR || "public/thumbs"
+
 const app = express()
-const PORT = config.port
+const PORT = process.env.PORT
 
 // Fake delay
 // app.use((req: Request, res: Response, next: NextFunction) => {
@@ -31,7 +49,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Cors and options
 app.use(cors({
     credentials: true,
-    origin: config.client
+    origin: process.env.CORS_ORIGIN_CLIENT === "true" ? true : false
 }))
 app.use(express.urlencoded({ extended: true, limit: "5mb" }))
 app.use(express.json())
@@ -47,13 +65,13 @@ declare module "express-session" {
 // TODO Change store
 app.use(session({
     name: "id",
-    secret: config.sessionSecret,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     unset: "destroy",
     cookie: {
         sameSite: 'strict',
-        secure: false, // set to true for https
+        secure: process.env.SECURE_COOKIES === "true" ? true : false,
         maxAge: 24 * 60 * 60 * 1000 // ms
         // maxAge: 1000 * 10
     }
@@ -77,7 +95,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 })
 
 // Connect to DB and listen for requests
-mongoose.connect(config.mongoose.url, config.mongoose.options)
+mongoose.connect(process.env.MONGODB_URL)
     .then(async () => {
         console.log("Connected to MongoDB.")
 
