@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 // 
 import IBlogSettings from "../interfaces/blogSettings";
-import { postPreviewLgStyles } from "../interfaces/postPreviews";
+import { postPreviewLgStyles, postPreviewSmStyles } from "../interfaces/postPreviews";
 
 const BlogSettingsSchema: Schema = new Schema<IBlogSettings>(
     {
@@ -14,6 +14,12 @@ const BlogSettingsSchema: Schema = new Schema<IBlogSettings>(
             introCard: { type: Boolean, default: false },
             introCardTitle: { type: String },
             introCardContent: { type: String }
+        },
+        sidebarLayout: {
+            showArchives: { type: Boolean, default: true },
+            showTags: { type: Boolean, default: true },
+            showLatestPosts: { type: Boolean, default: true },
+            postPreviewStyle: { type: String, enum: postPreviewSmStyles, default: "SmDefault" }
         }
     },
     {
