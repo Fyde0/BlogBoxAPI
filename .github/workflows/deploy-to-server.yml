@@ -22,6 +22,7 @@ jobs:
       - name: update
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          source ${{ secrets.ENV_FILE }}
           cd ${{ secrets.WORK_DIR }}
           git fetch origin
           git reset --hard origin/deploy
