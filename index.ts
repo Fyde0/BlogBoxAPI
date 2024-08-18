@@ -3,6 +3,7 @@ import express, { Request, Response, NextFunction } from "express"
 import cors from "cors"
 import mongoose from "mongoose"
 import session from "express-session"
+import MemoryStore from "memorystore"
 //
 import postRoutes from "./routes/post"
 import userRoutes from "./routes/user"
@@ -13,11 +14,11 @@ import { defaultBlogSettings } from "./interfaces/blogSettings"
 
 dotenv.config()
 
-if(!process.env.SESSION_SECRET) {
+if (!process.env.SESSION_SECRET) {
     throw new Error("Environment variable SESSION_SECRET required.")
 }
 
-if(!process.env.MONGODB_URL) {
+if (!process.env.MONGODB_URL) {
     throw new Error("Environment variable MONGODB_URL required.")
 }
 
@@ -62,9 +63,12 @@ declare module "express-session" {
     }
 }
 // Session setup
-// TODO Change store
+const MemStore = MemoryStore(session)
 app.use(session({
     name: "id",
+    store: new MemStore({
+        checkPeriod: 24 * 60 * 60 * 1000 // prune expired entries
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
