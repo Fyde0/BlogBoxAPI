@@ -8,6 +8,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: check if correct branch
+        if: github.ref != 'refs/heads/deploy'
+        run: |
+          echo "This workflow can only be triggered on the deploy branch"
+          exit 1
       - name: setup ssh 
         run: |
           install -m 600 -D /dev/null ~/.ssh/id_rsa
@@ -23,5 +28,5 @@ jobs:
           npm run build
           sudo systemctl restart ${{ secrets.SERVICE_NAME }}
           EOF
-      - name: cleanup
+      - name: clean up
         run: rm -rf ~/.ssh
