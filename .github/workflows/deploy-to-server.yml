@@ -1,0 +1,26 @@
+run-name: Deploying ${{ github.action_repository }}
+on:
+  push:
+    branches:
+      - deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup ssh 
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+      - name: update
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd ${{ secrets.WORK_DIR }}
+          git fetch origin
+          git reset --hard origin/deploy
+          npm install
+          npm run build
+          sudo systemctl restart ${{ secrets.SERVICE_NAME }}
+          EOF
+      - name: cleanup
+        run: rm -rf ~/.ssh
