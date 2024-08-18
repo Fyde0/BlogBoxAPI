@@ -10,7 +10,6 @@
   "license": "ISC",
   "homepage": "https://github.com/Fyde0/BlogBoxAPI",
   "description": "",
-  "type": "module",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
