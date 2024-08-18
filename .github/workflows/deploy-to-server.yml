@@ -1,4 +1,4 @@
-run-name: Deploying ${{ github.action_repository }}
+run-name: Deploying github.action_repository
 on:
   workflow_dispatch:
   push:
@@ -6,6 +6,7 @@ on:
       - deploy
 jobs:
   deploy:
+    environment: Deploy
     runs-on: ubuntu-latest
     steps:
       - name: check if correct branch
