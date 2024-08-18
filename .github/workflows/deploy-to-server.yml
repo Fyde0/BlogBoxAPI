@@ -1,5 +1,6 @@
 run-name: Deploying ${{ github.action_repository }}
 on:
+  workflow_dispatch:
   push:
     branches:
       - deploy
