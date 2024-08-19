@@ -269,11 +269,62 @@ async function updateUserInfo(req: Request, res: Response, next: NextFunction) {
         .catch((error) => { return serverError(res, error) })
 }
 
+// 
+// Change password
+// 
+async function changePassword(req: Request, res: Response, next: NextFunction) {
+    console.log("Changing password...")
+
+    const { oldPassword, newPassword } = req.body
+
+    const validationResult = z.object({
+        oldPassword: z.string().min(1, { message: "Old password required." }),
+        newPassword: z.string().min(1, { message: "New password required." })
+    }).safeParse({ oldPassword, newPassword })
+
+    if (!validationResult.success) {
+        // 422 Unprocessable Content
+        console.log("Fields missing.")
+        return res.status(422).json({ "error": validationResult.error.issues[0].message })
+    }
+
+    const user = await User.findOne({ _id: req.session.userId })
+        .select("+password")
+    if (!user) {
+        // 401 Unauthorized
+        console.log("User not found.")
+        return res.status(401).json({ "error": "Credentials invalid." })
+    }
+
+    // Validate password
+    const validPassword = await bcrypt.compare(oldPassword, user.password)
+    if (!validPassword) {
+        // 401 Unauthorized
+        console.log("Wrong credentials.")
+        return res.status(401).json({ "error": "Wrong password." })
+    }
+
+    const newHash = await validateAndHashPassword(newPassword)
+
+    user.set("password", newHash)
+
+    user.save()
+        .then(user => {
+            if (!user) {
+                return serverError(res, "Change password error")
+            }
+            console.log("Password updated.")
+            return res.status(200).json({ "message": "Password changed." })
+        })
+        .catch((error) => { return serverError(res, error) })
+}
+
 export default {
     register,
     login,
     logout,
     ping,
     changeSettings,
-    updateUserInfo
+    updateUserInfo,
+    changePassword
 }
