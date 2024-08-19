@@ -43,7 +43,7 @@ function now() {
     return new Date().toISOString();
 }
 app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log(`METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.ip}]`)
+    console.log(`TIME: [${now()}] - METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.ip}]`)
     next()
 })
 

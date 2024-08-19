@@ -13,6 +13,7 @@ const PostSchema: Schema = new Schema<IPost>(
         },
         content: { type: String },
         picture: { type: String },
+        pictureInView: { type: Boolean },
         tags: { type: [String] }
     },
     {

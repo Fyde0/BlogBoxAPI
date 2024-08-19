@@ -22,7 +22,7 @@ const upload = multer(
 
 // upload image to mamory, resizes it and saves to disk
 function uploadThumbnail(req: Request, res: Response, next: NextFunction) {
-    upload(req, res, (error: any) => {
+    upload(req, res, async (error: any) => {
         if (error) {
             if (error && error.message) {
                 // 422 Unprocessable Content
@@ -38,18 +38,26 @@ function uploadThumbnail(req: Request, res: Response, next: NextFunction) {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9)
         const fileName = "thumbnail-" + uniqueSuffix
 
-        sharp(req.file.buffer)
-            .resize({ width: 200, height: 200 })
+        await sharp(req.file.buffer)
+            .resize({ width: 512, height: 512, fit: "inside" })
             .jpeg({ quality: 100 })
-            .toFile(process.env.THUMBS_DIR + "/" + fileName)
-            .then(() => {
-                req.body.thumbnail = fileName
-                next()
-            })
+            .toFile(process.env.THUMBS_DIR + "/" + fileName + "-512")
             .catch((error) => {
                 console.log(error)
                 return serverError(res, "File upload error.")
             })
+
+        await sharp(req.file.buffer)
+            .resize({ width: 200, height: 200 })
+            .jpeg({ quality: 90 })
+            .toFile(process.env.THUMBS_DIR + "/" + fileName)
+            .catch((error) => {
+                console.log(error)
+                return serverError(res, "File upload error.")
+            })
+
+        req.body.thumbnail = fileName
+        next()
     })
 }
 
