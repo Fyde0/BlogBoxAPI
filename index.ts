@@ -55,6 +55,9 @@ app.use(cors({
 app.use(express.urlencoded({ extended: true, limit: "5mb" }))
 app.use(express.json())
 
+// Trust proxy on local network (reverse proxy)
+app.set("trust proxy", "loopback")
+
 // Interface for session content
 // see https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/express-session/index.d.ts
 declare module "express-session" {
