@@ -6,6 +6,7 @@ import { serverError } from "../helpers/serverError"
 import IUser, { isIUserInfo, IUserInfo } from "../interfaces/user"
 import { defaultUserSettings, isIUserSettings } from "../interfaces/userSettings"
 import User from "../models/user"
+import validateAndHashPassword from "../helpers/validateAndHashPassword"
 
 // 
 // Register
@@ -24,13 +25,8 @@ async function register(req: Request, res: Response, next: NextFunction) {
             .min(4, { message: "The username must be between 4 and 32 characters." })
             .max(32, { message: "The username must be between 4 and 32 characters." })
             .regex(/^([a-z0-9-_]+)$/, { message: "The username contains invalid characters." }),
-        password: z
-            .string()
-            .min(1, { message: "Password required." })
-            .min(4, { message: "The password must be between 4 and 50 characters." })
-            .max(50, { message: "The password must be between 4 and 50 characters." }),
     })
-        .safeParse({ username, password })
+        .safeParse({ username })
 
     if (!validationResult.success) {
         // 422 Unprocessable Content
@@ -45,12 +41,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
         return res.status(409).json({ "error": "This username is already taken." })
     }
 
-    // Hash password
-    const saltRounds = 10
-    const hash = await bcrypt.hash(password, saltRounds)
-    if (!hash) {
-        return serverError(res, "BCrypt error.")
-    }
+    const hash = await validateAndHashPassword(password)
 
     // Create new User
     // Need the interface, Typescript doesn't validate Models
