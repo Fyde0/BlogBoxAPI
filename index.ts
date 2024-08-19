@@ -27,8 +27,8 @@ process.env.PORT = process.env.PORT || "3000"
 process.env.CORS_ORIGIN_CLIENT = process.env.CORS_ORIGIN_CLIENT || "true"
 process.env.SECURE_COOKIES = process.env.SECURE_COOKIES || "false"
 process.env.PUBLIC_DIR = process.env.PUBLIC_DIR || "public/"
-process.env.AVATARS_DIR = process.env.AVATARS_DIR || "public/avatars"
-process.env.THUMBS_DIR = process.env.THUMBS_DIR || "public/thumbs"
+process.env.AVATARS_DIR = process.env.AVATARS_DIR || process.env.PUBLIC_DIR + "avatars"
+process.env.THUMBS_DIR = process.env.THUMBS_DIR || process.env.PUBLIC_DIR + "thumbs"
 
 const app = express()
 const PORT = process.env.PORT
@@ -82,7 +82,7 @@ app.use(session({
 }))
 
 // Public files
-app.use(express.static('public'))
+app.use(express.static(process.env.PUBLIC_DIR))
 
 // Routes
 app.use("/posts", postRoutes)
