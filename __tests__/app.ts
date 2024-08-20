@@ -1,18 +1,21 @@
 import request from "supertest"
 import app from "../app"
-import { connectToTestDB, disconnectFromDB } from "../helpers/tests"
+import { connectToTestDB, emptyDB } from "../helpers/tests"
 
 beforeEach(async () => {
-    return connectToTestDB()
+  return connectToTestDB()
 })
 
 afterEach(async () => {
-    return disconnectFromDB()
+  return emptyDB()
 })
 
 describe("Test app.ts", () => {
+
+  const agent = request.agent(app)
+
   test("Catch-all route", async () => {
-    const res = await request(app).get("/")
+    const res = await agent.get("/")
     expect(res.statusCode).toBe(404)
   })
 })

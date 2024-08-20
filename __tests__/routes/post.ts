@@ -1,19 +1,23 @@
 import request from "supertest"
 import app from "../../app"
-import { connectToTestDB, disconnectFromDB } from "../../helpers/tests"
+import { connectToTestDB, emptyDB } from "../../helpers/tests"
 import { isIAllPosts } from "../../interfaces/allPosts"
 
-beforeEach(async () => {
+beforeAll(async () => {
     return connectToTestDB()
 })
 
-afterEach(async () => {
-    return disconnectFromDB()
+afterAll(async () => {
+    return emptyDB()
 })
 
-describe("Test posts.ts", () => {
+describe("Test posts endpoints", () => {
+
+    const agent = request.agent(app)
+
     test("Catch-all route (latest 10 posts)", async () => {
-        const res = await request(app).get("/posts")
+        const res = await agent.get("/posts")
+
         expect(res.statusCode).toBe(200)
         expect(isIAllPosts(res.body)).toBe(true)
     })
