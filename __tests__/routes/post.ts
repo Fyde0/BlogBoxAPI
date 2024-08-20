@@ -1,14 +1,14 @@
 import request from "supertest"
 import app from "../../app"
-import { connectToTestDB, emptyDB } from "../../helpers/tests"
+import { connectAndInitDB, closeDB } from "../../helpers/tests"
 import { isIAllPosts } from "../../interfaces/allPosts"
 
 beforeAll(async () => {
-    return connectToTestDB()
+    return connectAndInitDB()
 })
 
 afterAll(async () => {
-    return emptyDB()
+    return closeDB()
 })
 
 describe("Test posts endpoints", () => {

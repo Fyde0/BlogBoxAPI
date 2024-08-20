@@ -1,20 +1,29 @@
 import request from "supertest"
 import app from "../../app"
-import { connectToTestDB, emptyDB, requestHeaders } from "../../helpers/tests"
+import { connectAndInitDB, closeDB, requestHeaders } from "../../helpers/tests"
 
 beforeAll(async () => {
-    return connectToTestDB()
+    return connectAndInitDB()
 })
 
 afterAll(async () => {
-    return emptyDB()
+    return closeDB()
 })
 
 describe("Test users endpoints", () => {
 
     const agent = request.agent(app)
 
-    test("Register user", async () => {
+    test("should return password required", async () => {
+        const res = await agent
+            .post("/users/login")
+            .set(requestHeaders)
+            .send({ username: "user" })
+
+        expect(res.statusCode).toBe(422)
+    })
+
+    test("should register the user", async () => {
         const res = await agent
             .post("/users/register")
             .set(requestHeaders)
@@ -23,7 +32,7 @@ describe("Test users endpoints", () => {
         expect(res.statusCode).toBe(201)
     })
 
-    test("Login", async () => {
+    test("should login the user", async () => {
         const res = await agent
             .post("/users/login")
             .set(requestHeaders)
@@ -32,9 +41,17 @@ describe("Test users endpoints", () => {
         expect(res.statusCode).toBe(200)
     })
 
-    test("Ping", async () => {
+    test("should ping the user", async () => {
         const res = await agent
             .get("/users/ping")
+            .set(requestHeaders)
+
+        expect(res.statusCode).toBe(200)
+    })
+
+    test("should logout the user", async () => {
+        const res = await agent
+            .get("/users/logout")
             .set(requestHeaders)
 
         expect(res.statusCode).toBe(200)
