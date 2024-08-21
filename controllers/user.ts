@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express"
 import bcrypt from "bcrypt"
-import { z } from "zod"
+import { z, ZodError } from "zod"
 //
 import { serverError } from "../helpers/serverError"
 import IUser, { isIUserInfo, IUserInfo } from "../interfaces/user"
@@ -41,24 +41,37 @@ async function register(req: Request, res: Response, next: NextFunction) {
         return res.status(409).json({ "error": "This username is already taken." })
     }
 
-    const hash = await validateAndHashPassword(password)
 
-    // Create new User
-    // Need the interface, Typescript doesn't validate Models
-    const newUser = new User<IUser>({
-        username: username,
-        password: hash,
-        settings: defaultUserSettings,
-        admin: false
-    })
+    validateAndHashPassword(password)
+        .then(hash => {
 
-    newUser.save()
-        .then(() => {
-            // 201 Created
-            console.log("User created.")
-            return res.status(201).json({ "message": "User created." })
+            // Create new User
+            // Need the interface, Typescript doesn't validate Models
+            const newUser = new User<IUser>({
+                username: username,
+                password: hash,
+                settings: defaultUserSettings,
+                admin: false
+            })
+
+            newUser.save()
+                .then(() => {
+                    // 201 Created
+                    console.log("User created.")
+                    return res.status(201).json({ "message": "User created." })
+                })
+                .catch((error) => { return serverError(res, error) })
+
         })
-        .catch((error) => { return serverError(res, error) })
+        .catch(error => {
+            if (error instanceof ZodError) {
+                // 422 Unprocessable Content
+                console.log("Invalid password.")
+                return res.status(422).json({ "error": error.issues[0].message })
+            } else {
+                return serverError(error, error.message)
+            }
+        })
 }
 
 // 
@@ -304,19 +317,30 @@ async function changePassword(req: Request, res: Response, next: NextFunction) {
         return res.status(401).json({ "error": "Wrong password." })
     }
 
-    const newHash = await validateAndHashPassword(newPassword)
+    validateAndHashPassword(newPassword)
+        .then(newHash => {
 
-    user.set("password", newHash)
+            user.set("password", newHash)
 
-    user.save()
-        .then(user => {
-            if (!user) {
-                return serverError(res, "Change password error")
-            }
-            console.log("Password updated.")
-            return res.status(200).json({ "message": "Password changed." })
+            user.save()
+                .then(user => {
+                    if (!user) {
+                        return serverError(res, "Change password error")
+                    }
+                    console.log("Password updated.")
+                    return res.status(200).json({ "message": "Password changed." })
+                })
+                .catch((error) => { return serverError(res, error) })
         })
-        .catch((error) => { return serverError(res, error) })
+        .catch(error => {
+            if (error instanceof ZodError) {
+                // 422 Unprocessable Content
+                console.log("Invalid password.")
+                return res.status(422).json({ "error": error.issues[0].message })
+            } else {
+                return serverError(error, error.message)
+            }
+        })
 }
 
 export default {
