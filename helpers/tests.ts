@@ -1,4 +1,5 @@
 import mongoose from "mongoose"
+import TestAgent from "supertest/lib/agent"
 import User from "../models/user"
 import Post from "../models/post"
 
@@ -18,3 +19,20 @@ export async function closeDB() {
 }
 
 export const requestHeaders = { "Content-Type": "application/json" }
+
+export function loginAgent(agent: TestAgent) {
+    test("login", async () => {
+        await agent
+            .post("/users/login")
+            .set(requestHeaders)
+            .send({ username: "user", password: "pass" })
+    })
+}
+
+export function logoutAgent(agent: TestAgent) {
+    test("logout", async () => {
+        const res = await agent
+            .get("/users/logout")
+            .set(requestHeaders)
+    })
+}
