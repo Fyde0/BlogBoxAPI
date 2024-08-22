@@ -349,9 +349,11 @@ describe("PATCH /users/password", () => {
 
     test("should login with new password", async () => {
         const res = await agent
-            .post("/users/lohin")
+            .post("/users/login")
             .set(requestHeaders)
-            .send({ user: "user", password: newPassword })
+            .send({ username: "user", password: newPassword })
+
+        expect(res.statusCode).toBe(200)
     })
 
     logoutAgent(agent)
