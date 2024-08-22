@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "ts-node-dev index.ts",
     "build": "rm -rf build && npx tsc",
-    "test": "jest --verbose --silent --coverage"
+    "test": "jest --runInBand"
   },
   "author": "",
   "license": "ISC",

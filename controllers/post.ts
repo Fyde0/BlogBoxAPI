@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express"
-import { FilterQuery } from "mongoose"
+import mongoose, { FilterQuery } from "mongoose"
 import { z } from "zod"
 // 
 import { serverError } from "../helpers/serverError"
@@ -184,6 +184,15 @@ async function update(req: Request, res: Response, next: NextFunction) {
     console.log("Updating post...")
 
     const { _id } = req.params
+
+    try {
+        new mongoose.Types.ObjectId(_id)
+    } catch {
+        // 422 Unprocessable Content
+        console.log("Invalid id in /update")
+        return res.status(422).json({ "error": "Invalid id." })
+    }
+
     const userId = req.session.userId
     const updatedPost = JSON.parse(req.body.post)
 
@@ -240,6 +249,15 @@ async function deletePost(req: Request, res: Response, next: NextFunction) {
     console.log("Deleting post...")
 
     const { _id } = req.params
+
+    try {
+        new mongoose.Types.ObjectId(_id)
+    } catch {
+        // 422 Unprocessable Content
+        console.log("Invalid id in /update")
+        return res.status(422).json({ "error": "Invalid id." })
+    }
+
     const userId = req.session.userId
 
     const post = await Post.findOne({ _id })
