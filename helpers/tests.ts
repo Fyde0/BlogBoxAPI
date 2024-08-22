@@ -2,6 +2,7 @@ import mongoose from "mongoose"
 import TestAgent from "supertest/lib/agent"
 import User from "../models/user"
 import Post from "../models/post"
+import BlogSettings from "../models/blogSettings"
 
 export async function connectAndInitDB() {
     if (!process.env.MONGODB_URL_TESTING) {
@@ -11,7 +12,7 @@ export async function connectAndInitDB() {
     await mongoose.connect(process.env.MONGODB_URL_TESTING)
     await User.deleteMany({})
     await Post.deleteMany({})
-    console.log("Connected to MongoDB.")
+    await BlogSettings.deleteMany({})
 }
 
 export async function closeDB() {
@@ -20,19 +21,16 @@ export async function closeDB() {
 
 export const requestHeaders = { "Content-Type": "application/json" }
 
-export function loginAgent(agent: TestAgent) {
-    test("login", async () => {
-        await agent
-            .post("/users/login")
-            .set(requestHeaders)
-            .send({ username: "user", password: "pass" })
-    })
+export async function registerAgent(agent: TestAgent) {
+    await agent
+        .post("/users/register")
+        .set(requestHeaders)
+        .send({ username: "user", password: "pass" })
 }
 
-export function logoutAgent(agent: TestAgent) {
-    test("logout", async () => {
-        const res = await agent
-            .get("/users/logout")
-            .set(requestHeaders)
-    })
+export async function loginAgent(agent: TestAgent) {
+    await agent
+        .post("/users/login")
+        .set(requestHeaders)
+        .send({ username: "user", password: "pass" })
 }

@@ -2,21 +2,19 @@ import request from "supertest"
 import app from "../../app"
 import sharp from "sharp"
 // 
-import { connectAndInitDB, closeDB, requestHeaders, loginAgent, logoutAgent } from "../../helpers/tests"
+import { connectAndInitDB, closeDB, requestHeaders, loginAgent, registerAgent } from "../../helpers/tests"
 import { isIUserInfo } from "../../interfaces/user"
 import IUserSettings, { isIUserSettings } from "../../interfaces/userSettings"
 
-beforeAll(async () => {
+beforeEach(async () => {
     return connectAndInitDB()
 })
 
-afterAll(async () => {
+afterEach(async () => {
     return closeDB()
 })
 
 describe("POST /users/register", () => {
-
-    const agent = request.agent(app)
 
     test.each([
         { name: "no password", body: { username: "user" } },
@@ -29,6 +27,8 @@ describe("POST /users/register", () => {
         { name: "username containing invalid characters", body: { username: "us?er", password: "pass" } },
         { name: "username containing invalid characters", body: { username: "$user", password: "pass" } },
     ])("should fail register with 422 on $name", async ({ body }) => {
+        const agent = request.agent(app)
+
         const res = await agent
             .post("/users/register")
             .set(requestHeaders)
@@ -38,6 +38,8 @@ describe("POST /users/register", () => {
     })
 
     test("should register the user", async () => {
+        const agent = request.agent(app)
+
         const res = await agent
             .post("/users/register")
             .set(requestHeaders)
@@ -47,6 +49,13 @@ describe("POST /users/register", () => {
     })
 
     test("should fail register with 409 on username already taken", async () => {
+        const agent = request.agent(app)
+
+        await agent
+            .post("/users/register")
+            .set(requestHeaders)
+            .send({ username: "user", password: "pass" })
+
         const res = await agent
             .post("/users/register")
             .set(requestHeaders)
@@ -54,17 +63,17 @@ describe("POST /users/register", () => {
 
         expect(res.statusCode).toBe(409)
     })
-
 })
 
-describe("POST /users/login and GET /users/logout", () => {
-
-    const agent = request.agent(app)
+describe("POST /users/login", () => {
 
     test.each([
         { name: "no password", body: { username: "user" } },
         { name: "no username", body: { password: "pass" } },
     ])("should fail login with 422 on $name", async ({ body }) => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .post("/users/login")
             .set(requestHeaders)
@@ -74,6 +83,9 @@ describe("POST /users/login and GET /users/logout", () => {
     })
 
     test("should fail login with 401 on non existing username", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .post("/users/login")
             .set(requestHeaders)
@@ -83,6 +95,9 @@ describe("POST /users/login and GET /users/logout", () => {
     })
 
     test("should fail login with 401 on wrong password", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .post("/users/login")
             .set(requestHeaders)
@@ -91,15 +106,10 @@ describe("POST /users/login and GET /users/logout", () => {
         expect(res.statusCode).toBe(401)
     })
 
-    test("should fail logout with 204 when not logged in", async () => {
-        const res = await agent
-            .get("/users/logout")
-            .set(requestHeaders)
-
-        expect(res.statusCode).toBe(204)
-    })
-
     test("should login the user and return user state", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .post("/users/login")
             .set(requestHeaders)
@@ -110,8 +120,26 @@ describe("POST /users/login and GET /users/logout", () => {
         expect(isIUserSettings(res.body.userSettings)).toBe(true)
         expect(typeof res.body.admin === "boolean").toBe(true)
     })
+})
+
+describe("GET /users/logout", () => {
+
+    test("should fail logout with 204 when not logged in", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
+        const res = await agent
+            .get("/users/logout")
+            .set(requestHeaders)
+
+        expect(res.statusCode).toBe(204)
+    })
 
     test("should logout the user", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .get("/users/logout")
             .set(requestHeaders)
@@ -122,9 +150,10 @@ describe("POST /users/login and GET /users/logout", () => {
 
 describe("GET /users/ping", () => {
 
-    const agent = request.agent(app)
-
     test("should fail ping with 401 when not logged in", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .get("/users/ping")
             .set(requestHeaders)
@@ -132,9 +161,10 @@ describe("GET /users/ping", () => {
         expect(res.statusCode).toBe(401)
     })
 
-    loginAgent(agent)
-
     test("should ping the user and return admin status", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
 
         const res = await agent
             .get("/users/ping")
@@ -143,15 +173,14 @@ describe("GET /users/ping", () => {
         expect(res.statusCode).toBe(200)
         expect(typeof res.body.isAdmin === "boolean").toBe(true)
     })
-
-    logoutAgent(agent)
 })
 
 describe("PATCH /users/settings", () => {
 
-    const agent = request.agent(app)
-
     test("should fail changing settings with 401 when not logged in", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .patch("/users/settings")
             .set(requestHeaders)
@@ -160,9 +189,11 @@ describe("PATCH /users/settings", () => {
         expect(res.statusCode).toBe(401)
     })
 
-    loginAgent(agent)
-
     test("should fail changing settings with 422 on invalid object", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/settings")
             .set(requestHeaders)
@@ -172,6 +203,9 @@ describe("PATCH /users/settings", () => {
     })
 
     test("should change user settings and return new settings", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
 
         const postsPerPage = 15
         const theme = "light"
@@ -187,15 +221,14 @@ describe("PATCH /users/settings", () => {
         expect(res.body.postsPerPage === postsPerPage).toBe(true)
         expect(res.body.theme === theme).toBe(true)
     })
-
-    logoutAgent(agent)
 })
 
 describe("PATCH /users/update", () => {
 
-    const agent = request.agent(app)
-
     test("should fail updating user with 401 when not logged in", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .patch("/users/update")
             .set(requestHeaders)
@@ -204,12 +237,14 @@ describe("PATCH /users/update", () => {
         expect(res.statusCode).toBe(401)
     })
 
-    loginAgent(agent)
-
     test.each([
         { name: "name too long", body: { name: "n".repeat(55) } },
         { name: "about too long", body: { about: "a".repeat(505) } },
     ])("should fail update user with 422 on $name", async ({ body }) => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/update")
             .set(requestHeaders)
@@ -219,6 +254,10 @@ describe("PATCH /users/update", () => {
     })
 
     test("should fail changing avatar with 422 on file too heavy", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const bigPic = await sharp({
             create: {
                 width: 512,
@@ -237,6 +276,10 @@ describe("PATCH /users/update", () => {
     })
 
     test("should fail changing avatar with 422 on non image", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/update")
             .attach("avatar", Buffer.from("not an image"), "file.txt")
@@ -245,6 +288,10 @@ describe("PATCH /users/update", () => {
     })
 
     test("should update user name and about", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const name = "a name"
         const about = "about me"
         const res = await agent
@@ -259,6 +306,10 @@ describe("PATCH /users/update", () => {
     })
 
     test("should upload avatar", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const pic = await sharp({
             create: {
                 width: 64,
@@ -277,6 +328,23 @@ describe("PATCH /users/update", () => {
     })
 
     test("should delete avatar", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
+        const pic = await sharp({
+            create: {
+                width: 64,
+                height: 64,
+                channels: 3,
+                background: { r: 255, g: 0, b: 0 }
+            }
+        }).jpeg().toBuffer()
+
+        await agent
+            .patch("/users/update")
+            .attach("avatar", pic, "avatar.jpg")
+
         const res = await agent
             .patch("/users/update")
             .set(requestHeaders)
@@ -285,31 +353,31 @@ describe("PATCH /users/update", () => {
         expect(res.statusCode).toBe(200)
         expect(res.body.avatar).toBe(undefined)
     })
-
-    logoutAgent(agent)
 })
 
 describe("PATCH /users/password", () => {
 
-    const agent = request.agent(app)
-    const newPassword = "newpass"
-
     test("should fail changing password with 401 when not logged in", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+
         const res = await agent
             .patch("/users/password")
             .set(requestHeaders)
-            .send({ oldPassword: "pass", newPassword })
+            .send({ oldPassword: "pass", newPassword: "newPass" })
 
         expect(res.statusCode).toBe(401)
     })
 
-    loginAgent(agent)
-
     test("should fail changing password with 422 on old password missing", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/password")
             .set(requestHeaders)
-            .send({ newPassword })
+            .send({ newPassword: "newpass" })
 
         expect(res.statusCode).toBe(422)
     })
@@ -319,6 +387,10 @@ describe("PATCH /users/password", () => {
         { name: "new password too short", newPassword: "p" },
         { name: "new password too long", newPassword: "p".repeat(55) },
     ])("should fail changing password with 422 on $name", async ({ newPassword }) => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/password")
             .set(requestHeaders)
@@ -328,33 +400,46 @@ describe("PATCH /users/password", () => {
     })
 
     test("should fail changing password with 401 on wrong old password", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/password")
             .set(requestHeaders)
-            .send({ oldPassword: "wrongpass", newPassword })
+            .send({ oldPassword: "wrongpass", newPassword: "newpass" })
 
         expect(res.statusCode).toBe(401)
     })
 
     test("should change password", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
         const res = await agent
             .patch("/users/password")
             .set(requestHeaders)
-            .send({ oldPassword: "pass", newPassword })
+            .send({ oldPassword: "pass", newPassword: "newpass" })
 
         expect(res.statusCode).toBe(200)
     })
 
-    logoutAgent(agent)
-
     test("should login with new password", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
+        await agent
+            .patch("/users/password")
+            .set(requestHeaders)
+            .send({ oldPassword: "pass", newPassword: "newpass" })
+
         const res = await agent
             .post("/users/login")
             .set(requestHeaders)
-            .send({ username: "user", password: newPassword })
+            .send({ username: "user", password: "newpass" })
 
         expect(res.statusCode).toBe(200)
     })
-
-    logoutAgent(agent)
 })
