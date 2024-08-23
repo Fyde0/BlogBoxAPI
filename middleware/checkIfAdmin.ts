@@ -14,6 +14,10 @@ function checkIfAdmin(req: Request, res: Response, next: NextFunction) {
             }
             if (user.admin === true) {
                 next()
+            } else {
+                // 401 Unauthorized
+                console.log("Unauthorized.")
+                return res.status(401).json({"error": "Unauthorized."})
             }
         })
 }

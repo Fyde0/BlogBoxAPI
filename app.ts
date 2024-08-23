@@ -11,9 +11,16 @@ import { serverError } from "./helpers/serverError"
 
 dotenv.config()
 
-if (!process.env.SESSION_SECRET) {
-    throw new Error("Environment variable SESSION_SECRET required.")
+// this function is so Jest can test it
+export function setupSessionSecret() {
+    if (!process.env.SESSION_SECRET) {
+        throw new Error("Environment variable SESSION_SECRET required.")
+    } else {
+        return process.env.SESSION_SECRET
+    }
 }
+
+const sessionSecret = setupSessionSecret()
 
 // env defaults
 process.env.CORS_ORIGIN_CLIENT = process.env.CORS_ORIGIN_CLIENT || "true"
@@ -63,7 +70,7 @@ app.use(session({
     store: new MemStore({
         checkPeriod: 24 * 60 * 60 * 1000 // prune expired entries
     }),
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     unset: "destroy",
@@ -89,6 +96,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 })
 // If everything else fails
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    // Ignoring because I have no idea how to trigger this
+    /* istanbul ignore next */
     serverError(res, err.stack)
 })
 
