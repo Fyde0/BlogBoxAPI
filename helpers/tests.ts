@@ -5,6 +5,7 @@ import * as crypto from "crypto"
 import User from "../models/user"
 import Post from "../models/post"
 import BlogSettings from "../models/blogSettings"
+import { defaultBlogSettings } from "../interfaces/blogSettings"
 import { isIPost } from "../interfaces/post"
 
 export async function connectAndInitDB() {
@@ -42,6 +43,16 @@ export async function logoutAgent(agent: TestAgent) {
     await agent
         .get("/users/logout")
         .set(requestHeaders)
+}
+
+export async function makeUserAdmin() {
+    await User.findOneAndUpdate({ username: "user" }, { admin: true })
+}
+
+export async function initBlogSettings() {
+    if (! await BlogSettings.exists({})) {
+        await BlogSettings.create(defaultBlogSettings)
+    }
 }
 
 export async function createPost(agent: TestAgent, tags?: string[]) {
