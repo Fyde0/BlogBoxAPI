@@ -70,19 +70,30 @@ describe("PATCH /blog/settings", () => {
         expect(res.statusCode).toBe(401)
     })
 
-    test("should fail changing settings with 422 on invalid object", async () => {
+    test.each([
+        {
+            name: "on invalid title or theme",
+            blogSettings: { ...defaultBlogSettings, title: undefined }
+        },
+        {
+            name: "on invalid homeLayout",
+            blogSettings: { ...defaultBlogSettings, homeLayout: { postPreviewStyle: "invalid" } }
+        },
+        {
+            name: "on invalid sidebarLayout",
+            blogSettings: { ...defaultBlogSettings, sidebarLayout: { postPreviewStyle: "invalid" } }
+        }
+    ])("should fail changing settings with 422 $name", async ({ blogSettings }) => {
         const agent = request.agent(app)
         await initBlogSettings()
         await registerAgent(agent)
         await loginAgent(agent)
         await makeUserAdmin()
 
-        const newSettings = { invalid: "..." }
-
         const res = await agent
             .patch("/blog/settings")
             .set(requestHeaders)
-            .send(newSettings)
+            .send(blogSettings)
 
         expect(res.statusCode).toBe(422)
     })

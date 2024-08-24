@@ -1,9 +1,11 @@
 import request from "supertest"
+import { access, constants, unlink } from 'node:fs'
 import app from "../../app"
 import { connectAndInitDB, closeDB, registerAgent, loginAgent, requestHeaders, createPost, logoutAgent, getPost } from "../../helpers/tests"
 import { isIAllPosts } from "../../interfaces/allPosts"
 import IPost, { isIPost } from "../../interfaces/post"
 import { isIPostsCountByMonthArray } from "../../interfaces/postsCountByMonth"
+import sharp from "sharp"
 
 beforeEach(async () => {
     return connectAndInitDB()
@@ -55,6 +57,95 @@ describe("POST /posts/create", () => {
 
         expect(res.statusCode).toBe(201)
         expect(typeof res.body === "string").toBe(true)
+    })
+
+    test("should create a post with a thumbnail", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
+        const pic = await sharp({
+            create: {
+                width: 64,
+                height: 64,
+                channels: 3,
+                background: { r: 255, g: 0, b: 0 }
+            }
+        }).jpeg().toBuffer()
+
+        const res = await agent
+            .post("/posts/create")
+            .field("post", JSON.stringify(
+                { title: "title", content: "content" }
+            ))
+            .attach("thumbnail", pic, "pic.jpg")
+
+        expect(res.statusCode).toBe(201)
+        const post = await getPost(agent, res.body)
+
+        // filename
+        expect(post.picture?.includes("thumbnail")).toBe(true)
+        const file = process.env.THUMBS_DIR + "/" + post.picture
+        const fileLarge = process.env.THUMBS_DIR + "/" + post.picture + "-512"
+
+        // small thumb exists
+        access(file, constants.F_OK, (err) => {
+            expect(err).toBe(null)
+        })
+        // small thumb is accessible
+        access(file, constants.R_OK, (err) => {
+            expect(err).toBe(null)
+        })
+        // large thumb exists
+        access(fileLarge, constants.F_OK, (err) => {
+            expect(err).toBe(null)
+        })
+        // large thumb is accessible
+        access(fileLarge, constants.R_OK, (err) => {
+            expect(err).toBe(null)
+        })
+        unlink(file, (err) => { if (err) throw err })
+        unlink(fileLarge, (err) => { if (err) throw err })
+    })
+
+    test("should fail creating a post with 422 on invalid thumbnail file type", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
+        const res = await agent
+            .post("/posts/create")
+            .field("post", JSON.stringify(
+                { title: "title", content: "content" }
+            ))
+            .attach("thumbnail", Buffer.from("not an image"), "file.txt")
+
+        expect(res.statusCode).toBe(422)
+    })
+
+    test("should fail creating a post with 422 on file too heavy", async () => {
+        const agent = request.agent(app)
+        await registerAgent(agent)
+        await loginAgent(agent)
+
+        const bigPic = await sharp({
+            create: {
+                width: 2048,
+                height: 2048,
+                channels: 4,
+                background: { r: 255, g: 0, b: 0, alpha: 0 },
+                noise: { type: "gaussian", mean: 512, sigma: 5000 }
+            }
+        }).png({ compressionLevel: 0 }).toBuffer()
+
+        const res = await agent
+            .post("/posts/create")
+            .field("post", JSON.stringify(
+                { title: "title", content: "content" }
+            ))
+            .attach("thumbnail", bigPic, "pic.jpg")
+
+        expect(res.statusCode).toBe(422)
     })
 })
 
