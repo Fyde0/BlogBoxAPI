@@ -20,10 +20,14 @@ jobs:
         cache: 'npm'
     - name: Use MongoDB
       uses: supercharge/mongodb-github-action@1.11.0
+      with:
+        mongodb-username: username
+        mongodb-password: password
+        mongodb-db: dabatasename
     - shell: bash
       env:
         SESSION_SECRET: ${{ secrets.SESSION_SECRET_ENV }}
-        MONGODB_URL_TESTING: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@localhost:${MONGODB_PORT}/${MONGODB_DB}?authMechanism=DEFAULT&authSource=admin
+        MONGODB_URL_TESTING: mongodb://username:password@localhost:27017/dabatasename
       run: |
         npm ci
         npm run test -- --verbose --silent --coverage
