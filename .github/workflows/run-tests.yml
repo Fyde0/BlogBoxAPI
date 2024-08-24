@@ -27,7 +27,7 @@ jobs:
     - shell: bash
       env:
         SESSION_SECRET: ${{ secrets.SESSION_SECRET_ENV }}
-        MONGODB_URL_TESTING: mongodb://username:password@localhost:27017/dabatasename
+        MONGODB_URL_TESTING: mongodb://username:password@localhost:27017/dabatasename?authSource=admin
       run: |
         npm ci
         npm run test -- --verbose --silent --coverage
