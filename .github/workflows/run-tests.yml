@@ -18,10 +18,12 @@ jobs:
       with:
         node-version: "22.x"
         cache: 'npm'
+    - name: Use MongoDB
+      uses: supercharge/mongodb-github-action@1.11.0=
     - shell: bash
       env:
         SESSION_SECRET: ${{ secrets.SESSION_SECRET_ENV }}
-        MONGODB_URL_TESTING: ${{ secrets.MONGO_DB_ENV }}
+        MONGODB_URL_TESTING: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@localhost:${MONGODB_PORT}/${MONGODB_DB}?authMechanism=DEFAULT&authSource=admin
       run: |
         npm ci
         npm run test -- --verbose --silent --coverage
