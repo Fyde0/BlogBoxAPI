@@ -1,4 +1,5 @@
 import request from "supertest"
+import { access, constants, unlink } from 'node:fs'
 import app from "../../app"
 import sharp from "sharp"
 // 
@@ -325,6 +326,14 @@ describe("PATCH /users/update", () => {
 
         expect(res.statusCode).toBe(200)
         expect(res.body.avatar.includes("avatar")).toBe(true)
+        const file = process.env.AVATARS_DIR + "/" + res.body.avatar
+        access(file, constants.F_OK, (err) => {
+            expect(err).toBe(null)
+        })
+        access(file, constants.R_OK, (err) => {
+            expect(err).toBe(null)
+        })
+        unlink(file, (err) => { if (err) throw err })
     })
 
     test("should delete avatar", async () => {
