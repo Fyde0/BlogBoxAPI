@@ -232,7 +232,7 @@ async function updateUserInfo(req: Request, res: Response, next: NextFunction) {
     console.log("Updating user info...")
 
     const _id = req.session.userId
-    const avatarFilename = req.file?.filename
+    const avatarFilename = req.body.avatar
     const newUserInfo = req.body
 
     const user = await User.findOne({ _id })
