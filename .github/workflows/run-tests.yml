@@ -18,9 +18,7 @@ jobs:
       with:
         node-version: "22.x"
         cache: 'npm'
-    - run: touch .env
-    - run: echo SESSION_SECRET=\"${{ secrets.SESSION_SECRET }}\" >> .env
-    - run: echo MONGO_URL_TESTING=\"${{ secrets.MONGO_URL_TESTING }}\" >> .env
+    - run: export ${{ secrets.SESSION_SECRET_ENV }}
+    - run: export ${{ secrets.MONGO_DB_ENV }}
     - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+    - run: npm run test -- --verbose --silent --coverage
