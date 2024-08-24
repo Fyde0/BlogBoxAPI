@@ -30,4 +30,7 @@ jobs:
         MONGODB_URL_TESTING: mongodb://username:password@localhost:27017/dabatasename?authSource=admin
       run: |
         npm ci
+        mkdir public/
+        mkdir public/avatars
+        mkdir public/thumbs
         npm run test -- --verbose --silent --coverage
