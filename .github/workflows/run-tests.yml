@@ -19,7 +19,7 @@ jobs:
         node-version: "22.x"
         cache: 'npm'
     - name: Use MongoDB
-      uses: supercharge/mongodb-github-action@1.11.0=
+      uses: supercharge/mongodb-github-action@1.11.0
     - shell: bash
       env:
         SESSION_SECRET: ${{ secrets.SESSION_SECRET_ENV }}
