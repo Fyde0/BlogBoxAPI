@@ -162,7 +162,7 @@ describe("GET /users/ping", () => {
         expect(res.statusCode).toBe(401)
     })
 
-    test("should ping the user and return admin status", async () => {
+    test("should ping the user and return user state", async () => {
         const agent = request.agent(app)
         await registerAgent(agent)
         await loginAgent(agent)
@@ -172,7 +172,9 @@ describe("GET /users/ping", () => {
             .set(requestHeaders)
 
         expect(res.statusCode).toBe(200)
-        expect(typeof res.body.isAdmin === "boolean").toBe(true)
+        expect(isIUserInfo(res.body.userInfo)).toBe(true)
+        expect(isIUserSettings(res.body.userSettings)).toBe(true)
+        expect(typeof res.body.admin === "boolean").toBe(true)
     })
 })
 
