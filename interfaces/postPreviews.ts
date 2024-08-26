@@ -1,5 +1,5 @@
 // const-assertion, makes TS see the array values as literals
-export const postPreviewLgStyles = ["LgDefault", "LgCard", "LgCardNoThumb", "LgCardHorizNoThumb"] as const
+export const postPreviewLgStyles = ["LgDefault", "LgCard", "LgCardNoThumb", "LgCardHoriz", "LgCardHorizNoThumb"] as const
 export const postPreviewSmStyles = ["SmDefault", "SmCardHoriz", "SmCardHorizNoThumb"] as const
 export const postPreviewAllStyles = [...postPreviewLgStyles, ...postPreviewSmStyles] as const
 
