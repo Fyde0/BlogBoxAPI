@@ -3,7 +3,7 @@ import bcrypt from "bcrypt"
 import { z, ZodError } from "zod"
 //
 import { serverError } from "../helpers/serverError"
-import IUser, { isIUserInfo, IUserInfo } from "../interfaces/user"
+import IUser, { IUserInfo } from "../interfaces/user"
 import { defaultUserSettings, isIUserSettings } from "../interfaces/userSettings"
 import User from "../models/user"
 import validateAndHashPassword from "../helpers/validateAndHashPassword"
@@ -175,17 +175,20 @@ function logout(req: Request, res: Response, next: NextFunction) {
 function ping(req: Request, res: Response, next: NextFunction) {
     console.log("Pinging user...")
 
-    User.findOne<IUser>({ _id: req.session.userId })
-        .select("+admin")
+    User.findOne({ _id: req.session.userId })
+        .select("+settings +admin")
         .then(user => {
             if (!user) {
                 // 401 Unauthorized
                 console.log("User doesn't exist in ping.")
                 return res.status(401).json({ "error": "Invalid credentials." })
             }
+            const userObj = user.toObject()
+            const { password, settings, admin, ...userInfo } = userObj
+            const userSettings = user.settings
             // 200 OK
             console.log("Pinged.")
-            return res.status(200).json({ isAdmin: user.admin })
+            return res.status(200).json({ userInfo, userSettings, admin })
         })
 }
 
